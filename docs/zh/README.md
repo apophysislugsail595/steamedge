@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="../assets/social-preview.jpg" alt="SteamEdge - 收集 Steam 卡牌、提升遊玩時數、管理成就並在社群市集販售" width="860">
+
 # SteamEdge
 
 **farm Steam 集換式卡牌、提升遊玩時數、管理成就並在社群市集販售，全程不需執行 Steam 用戶端。**

@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="../assets/social-preview.jpg" alt="SteamEdge - Steam-Sammelkarten farmen, Spielzeit erhöhen, Erfolge verwalten und auf dem Community Market verkaufen" width="860">
+
 # SteamEdge
 
 **Steam-Sammelkarten farmen, Spielzeit erhöhen, Errungenschaften verwalten und im Community-Markt verkaufen - ohne den Steam-Client zu starten.**

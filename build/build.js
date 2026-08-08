@@ -43,6 +43,10 @@ const IGNORE = [
   /^\/node_modules\/@electron\/packager($|\/)/,
   /^\/node_modules\/@electron\/get($|\/)/,
   /^\/node_modules\/@electron\/asar($|\/)/,
+  // Depo dosyalari: uygulamanin calismasi icin gerekmez, exe'ye girmesin.
+  /^\/docs($|\/)/,
+  /^\/\.github($|\/)/,
+  /^\/\.(gitignore|gitattributes|editorconfig)$/,
   /\.md$/i,
   /package-lock\.json$/,
 ];
@@ -98,7 +102,6 @@ async function main() {
   // kisi yapinin ne oldugunu hemen gorsun diye bos olarak birakiyoruz.
   for (const d of ['settings', 'cache']) {
     fs.mkdirSync(path.join(HEDEF, d), { recursive: true });
-    fs.writeFileSync(path.join(HEDEF, d, '.gitkeep'), '');
   }
   yaz(HEDEF);
 

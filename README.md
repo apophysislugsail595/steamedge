@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/assets/social-preview.jpg" alt="SteamEdge - farm Steam trading cards, boost playtime, manage achievements and sell on the Community Market" width="860">
+
 # SteamEdge
 
 **Farm Steam trading cards, boost playtime hours, manage achievements and sell on the Community Market - without running the Steam client.**

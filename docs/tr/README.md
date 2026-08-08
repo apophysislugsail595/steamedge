@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="../assets/social-preview.jpg" alt="SteamEdge - Steam kart toplama, saat yükseltme, başarım yönetimi ve pazar satışı" width="860">
+
 # SteamEdge
 
 **Steam ticaret kartı topla, oynanma süresi yükselt, başarım yönet ve Topluluk Pazarı'nda sat - Steam istemcisi çalıştırmadan.**

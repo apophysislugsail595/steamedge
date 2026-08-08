@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="../assets/social-preview.jpg" alt="SteamEdge - consigue cromos de Steam, aumenta horas de juego, gestiona logros y vende en el Mercado de la Comunidad" width="860">
+
 # SteamEdge
 
 **Farmea cromos de Steam, aumenta horas de juego, gestiona logros y vende en el Mercado de la Comunidad, sin ejecutar el cliente de Steam.**
