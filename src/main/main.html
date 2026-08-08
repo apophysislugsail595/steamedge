@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>SteamEdge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style/edge.css">
+<!-- Kart Düşür / Saat Yükseltici bu turda SteamEdge tasarımına geçiyor; eski common/kart/saat CSS'i
+     hâlâ yükleniyor çünkü kart.js/saat.js'in ürettiği bazı iç class'lar (örn. .cslot, .tbadge) oraya ait
+     ve henüz taşınmadı - edge.css bunların ÜSTÜNE, çakışmayan yeni class adlarıyla ekleniyor. -->
+<link rel="stylesheet" href="style/common.css">
+<link rel="stylesheet" href="style/kart.css">
+<link rel="stylesheet" href="style/saat.css">
+<link rel="stylesheet" href="style/genel.css">
+<link rel="stylesheet" href="style/basarim.css">
+<link rel="stylesheet" href="style/env.css">
+<link rel="stylesheet" href="style/ayarlar.css">
+<link rel="stylesheet" href="style/redesign.css">
+</head>
+<body class="edge" style="margin:0;height:100vh;min-height:600px;display:flex;flex-direction:column;background:var(--e-bg);overflow:hidden">
+
+  <!-- TITLEBAR (Electron frameless pencere kontrolleri) -->
+  <div class="e-titlebar">
+    <span></span>
+    <div class="e-tb-btns">
+      <button id="min">&#x2212;</button>
+      <button id="max">&#x2610;</button>
+      <button id="close" class="e-close">&#x2715;</button>
+    </div>
+  </div>
+
+  <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+
+    <!-- TOPBAR (marka + wordmark + sürüm solda, arama/bildirim/ayarlar/hesap sağda) -->
+    <header class="e-header">
+      <div style="display:flex;align-items:center;gap:12px">
+        <img src="../assets/logo-mark.png" alt="" style="height:26px;width:auto;display:block">
+        <span style="font-size:15px;font-weight:700;letter-spacing:-.01em;color:var(--e-title)">Steam<span style="color:var(--e-brand)">Edge</span></span>
+        <span style="font-family:'Geist Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.08em;color:var(--e-off);border:1px solid var(--e-bdPassive);border-radius:12px;padding:3px 8px">v1.0.0</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="e-search">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8B8F9E" stroke-width="1.8"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4.3-4.3"></path></svg>
+          <input id="tbSearch" type="text" placeholder="Oyun, eşya veya AppID ara...">
+        </div>
+        <button id="tbNotif" class="e-icon-btn" title="Bildirimler">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B8F9E" stroke-width="1.8"><path d="M6 10a6 6 0 0 1 12 0v5l2 2H4l2-2z"></path><path d="M10 20h4"></path></svg>
+          <span class="e-badge" id="tbNotifBadge" style="display:none"></span>
+        </button>
+        <button id="tbSettings" class="e-icon-btn" title="Ayarlar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3.2"></circle><circle cx="12" cy="12" r="8"></circle><path d="M12 4v2M12 18v2M4 12h2M18 12h2"></path></svg>
+        </button>
+        <div style="width:1px;height:24px;background:var(--e-bdPassive);margin:0 4px"></div>
+        <div class="e-acct" id="tbProfile">
+          <div class="e-acct-avatar" id="sideAvatar">-</div>
+          <div>
+            <div class="e-acct-name" id="sideName">-</div>
+            <div class="e-acct-lvl" id="sideLevel">Çevrimiçi</div>
+          </div>
+          <svg class="e-acct-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9l6 6 6-6"></path></svg>
+        </div>
+      </div>
+    </header>
+
+    <!-- hesap değiştirici akordiyonu -->
+    <div class="e-dropdown" id="acctDropdown">
+      <span class="e-dropdown-hd">Hesaplar</span>
+      <div class="e-acct-list" id="acctList"></div>
+      <div class="e-dropdown-sep"></div>
+      <button class="e-acct-add" id="acctAddBtn">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"></path></svg>
+        Hesap Ekle
+      </button>
+      <div class="e-dropdown-sep"></div>
+      <button class="e-acct-signout" id="acctLogoutBtn">
+        <span class="e-dot"></span>
+        <div>
+          <div class="e-acct-signout-lbl">Bu hesaptan çık</div>
+          <div class="e-acct-signout-sub">Aktif kart toplama ve saat yükseltme işlemleri durur</div>
+        </div>
+      </button>
+    </div>
+    <!-- bildirim menüsü (gerçek activityFeed verisi - bkz common.js) -->
+    <div class="e-notif-dropdown" id="notifDropdown">
+      <span class="e-dropdown-hd">Bildirimler</span>
+      <div class="e-notif-list" id="notifList"></div>
+    </div>
+
+    <div id="toastBox"></div>
+
+    <!-- BODY ROW: sidebar + content -->
+    <div style="flex:1;display:flex;min-height:0;min-width:0;overflow-x:auto">
+      <aside class="e-aside" id="sideNav">
+        <div>
+          <nav class="nav e-nav" id="mainNav">
+            <a data-tab="genel" class="e-nav-item active">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10.5 12 4l8 6.5V20H4z"></path><path d="M10 20v-6h4v6"></path></svg>
+              <span class="e-lbl">Genel Bakış</span>
+            </a>
+            <a data-tab="kart" class="e-nav-item">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="7" width="12" height="14" rx="2"></rect><path d="M8 4h9a2 2 0 0 1 2 2v11"></path></svg>
+              <span class="e-lbl">Kart Düşür</span>
+            </a>
+            <a data-tab="env" class="e-nav-item">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8h16v12H4z"></path><path d="M4 8l2-4h12l2 4"></path><path d="M10 12h4"></path></svg>
+              <span class="e-lbl">Envanter &amp; Pazar</span>
+            </a>
+            <a data-tab="saat" class="e-nav-item">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 3 5 14h6l-1 7 8-11h-6z"></path></svg>
+              <span class="e-lbl">Saat Yükseltici</span>
+            </a>
+            <a data-tab="basarim" class="e-nav-item">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 4h8v5a4 4 0 0 1-8 0z"></path><path d="M12 13v4M9 20h6"></path><path d="M8 5H5v2a3 3 0 0 0 3 3M16 5h3v2a3 3 0 0 1-3 3"></path></svg>
+              <span class="e-lbl">Başarımlar</span>
+            </a>
+            <div class="e-nav-sep"></div>
+            <a data-tab="cikis" class="e-nav-item e-logout">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 5H6v14h8"></path><path d="M17 8l3 4-3 4M11 12h9"></path></svg>
+              <span class="e-lbl">Çıkış Yap</span>
+            </a>
+          </nav>
+        </div>
+        <div class="e-sys">
+          <span class="e-dot" id="sysDot" style="background:var(--e-warn)"></span>
+          <span class="e-sys-lbl">Sistem: <span id="sysLabel" style="color:var(--e-warn)">HAZIR</span></span>
+        </div>
+        <!-- rail toggle: kenardan taşan yarım-daire sekme; top değeri
+             aktif nav öğesine göre kayar (17 + 44*index, bkz common.js setRailTop) -->
+        <button class="e-rail-toggle" id="sideCollapseBtn" title="Kenar çubuğunu daralt" style="top:17px">
+          <svg class="e-rail-tab" width="38" height="38" viewBox="0 0 38 38">
+            <rect x="18" y="1" width="2" height="36" fill="#090C12"></rect>
+            <path d="M19,1 A18,18 0 0,1 19,37" fill="#090C12" stroke="#1D2432" stroke-width="1"></path>
+          </svg>
+          <svg class="e-rail-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path id="railChev" d="M14 8l-4 4 4 4"></path>
+          </svg>
+        </button>
+      </aside>
+
+      <main class="e-main">
+        <section id="tab-genel"></section>
+        <section id="tab-kart" class="hidden"></section>
+        <section id="tab-env" class="hidden"></section>
+        <section id="tab-saat" class="hidden"></section>
+        <section id="tab-basarim" class="hidden"></section>
+        <section id="tab-ayarlar" class="hidden"></section>
+        <section id="tab-empty" class="hidden">
+          <div class="empty">
+            <div id="emptyName" style="font-size:16px;font-weight:600;color:var(--e-muted)">Sekme</div>
+            <div style="font-size:13px;color:var(--e-off)">Bu sekmenin içeriği henüz tasarlanmadı.</div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    // Sayfa parçaları burada, SAYFA JS'LERİ ÇALIŞMADAN ÖNCE senkron olarak enjekte edilir -
+    // her sayfanın kendi script'i (js/*.js) ilgili id'lere anında getElementById ile bağlanıyor.
+    document.getElementById('tab-genel').innerHTML = window.imu.pages.load('genel');
+    document.getElementById('tab-kart').innerHTML = window.imu.pages.load('kart');
+    document.getElementById('tab-env').innerHTML = window.imu.pages.load('env');
+    document.getElementById('tab-saat').innerHTML = window.imu.pages.load('saat');
+    document.getElementById('tab-basarim').innerHTML = window.imu.pages.load('basarim');
+    document.getElementById('tab-ayarlar').innerHTML = window.imu.pages.load('ayarlar');
+  </script>
+  <!-- Cok dillilik: sozluk + DOM uzerinde ceviri. Diger sayfa JS'lerinden ONCE. -->
+  <script src="js/i18n.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/kart.js"></script>
+  <script src="js/saat.js"></script>
+  <script src="js/env.js"></script>
+  <script src="js/basarim.js"></script>
+  <script src="js/ayarlar.js"></script>
+  <script src="js/genel.js"></script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+  :root{
+    /* ---- yüzeyler (premium katmanlı koyu tema - Steam/gaming) ---- */
+    --bg:#0b1119; --panel:#111a26; --card:#16202e; --card2:#1b2736; --line:#2c3a4d;
+    --line-2:#3a4c63;                 /* daha belirgin sınır (hover/aktif) */
+    --sheen:rgba(255,255,255,.05);    /* kart üst-kenar parlaklığı */
+    /* ---- metin (daha yüksek kontrast, sönük değil) ---- */
+    --txt:#eef3f9; --muted:#9aabbd; --muted2:#6f8195;
+    /* ---- SABİT PALET (tek kaynak - tüm uygulama bunları kullanır) ---- */
+    --blue:#4a9bff;   /* Primary / Bilgi */
+    --green:#5fd074;  /* Success / Çalışıyor */
+    --amber:#e6b155;  /* Warning / Uyarı-Bekliyor */
+    --purple:#b596ff; /* Accent */
+    --red:#e85a66;    /* Danger / Durdu-Hata */
+    /* ---- semantik alias'lar (madde 5) ---- */
+    --primary:var(--blue); --success:var(--green); --warning:var(--amber); --danger:var(--red); --accent:var(--purple);
+    --info:var(--blue);
+    --surface:var(--card); --surface-2:var(--card2); --border:var(--line);
+    --text:var(--txt); --text-2:var(--muted); --text-3:var(--muted2);
+    --red-s:#e0556f; --lite:#e6eef4;
+    /* ---- ek ayırt edici renkler (madde 5 genişletme) ---- */
+    --teal:#2dd4b8;   /* Satılabilir / ikincil-olumlu durum - fiyat yeşilinden ayrışsın */
+    --gold:#ffd75e;   /* Yüksek değer / premium vurgu */
+    --pink:#ff6fa8;   /* Pazar / satış aksiyonu vurgusu */
+    /* ---- ortak ölçüler ---- */
+    --radius:12px; --radius-sm:8px; --gap:16px; --pad:18px;
+    --shadow:0 6px 20px rgba(0,0,0,.28);
+    /* ---- 6 SABİT KUTU YÜKSEKLİĞİ (tek ölçek - her sayfa yalnız bunları kullanır) ---- */
+    --box-1:96px;    /* istatistik kutusu */
+    --box-2:140px;   /* küçük panel / özet */
+    --box-3:200px;   /* orta panel */
+    --box-4:280px;   /* büyük panel (dashboard sütunları) */
+    --box-5:min(360px, calc(100vh - 430px));  /* liste (kısa) */
+    --box-6:min(548px, calc(100vh - 250px));  /* ana liste alanı - viewport'a sığar, taşma yok */
+    /* ---- 3 SABİT BUTON YÜKSEKLİĞİ (44px dokunma-hedefi kuralına uygun) ---- */
+    --btn-sm:34px;   /* tablo içi mini aksiyon (Aç/Kilitle vb.) */
+    --btn-md:44px;   /* ikincil aksiyon (Hemen Sat, Durdur vb.) */
+    --btn-lg:48px;   /* birincil aksiyon (Başlat, Satışa Sun vb.) */
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:"Segoe UI",system-ui,sans-serif;color:var(--txt);background:var(--bg);overflow:hidden;user-select:none}
+  /* Logo/suit dizisi ve renkleri SABİT (madde 3, gerçek icon.png'ye göre): ♠ beyaz · ♥ kırmızı · ♦ beyaz · ♣ kırmızı */
+  .suits .s,.suits .d{color:var(--lite)}
+  .suits .h,.suits .c{color:var(--red-s)}
+  /* ---- EVRENSEL DURUM SİSTEMİ (madde 6) - tek mantık, her yerde ---- */
+  .status{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;padding:5px 11px;border-radius:20px;border:1px solid transparent;white-space:nowrap}
+  .status .dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+  .status.run{color:var(--success);background:rgba(87,198,106,.12);border-color:#2c5a37}
+  .status.run .dot{box-shadow:0 0 0 3px rgba(87,198,106,.18)}
+  .status.wait{color:var(--warning);background:rgba(224,169,77,.12);border-color:#5a4420}
+  .status.info{color:var(--info);background:rgba(61,139,255,.12);border-color:#1f4a78}
+  .status.warn{color:var(--warning);background:rgba(224,169,77,.12);border-color:#5a4420}
+  .status.err{color:var(--danger);background:rgba(224,80,92,.12);border-color:#5a2c33}
+  .status.idle{color:var(--muted);background:var(--card2);border-color:var(--line)}
+  .status.idle .dot{background:var(--muted)}
+  .lifegrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:4px 0 12px}
+  .lifecard{background:var(--card2);border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px 16px}
+  .lifecard .lv{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
+  .lifecard .ll{font-size:11.5px;color:var(--muted2);margin-top:3px}
+  /* ===== ORTAK DESIGN SYSTEM (madde 4,8,9,10) ===== */
+  /* Grid yardımcıları - sabit gap, tüm sayfalarda aynı ritim */
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}
+  .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap)}
+  .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap)}
+  /* Ortak kart geçiş/hover - tüm kart tipleri aynı hisse gelsin */
+  .stat,.panel,.kpanel,.scard,.acard,.acc,.cart,.pcard,.lifecard,.bstat,.qbtn{transition:border-color .15s ease,box-shadow .15s ease,background .15s ease}
+  /* Ortak boş-durum bileşeni: ikon + başlık + açıklama + (opsiyonel) yönlendirme butonu */
+  .emptybox{height:100%;min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:9px;padding:26px 18px;color:var(--muted2)}
+  .emptybox .eb-ic{width:56px;height:56px;border-radius:14px;background:var(--card2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);margin-bottom:2px}
+  .emptybox .eb-a{font-size:14px;font-weight:700;color:var(--txt)}
+  .emptybox .eb-b{font-size:12.5px;color:var(--muted);max-width:320px;line-height:1.5}
+  .emptybox .eb-btn{margin-top:8px;display:inline-flex;align-items:center;gap:8px;background:var(--primary);color:#fff;border:0;border-radius:var(--radius-sm);padding:9px 16px;font-size:12.5px;font-weight:600;cursor:pointer}
+  .emptybox .eb-btn:hover{filter:brightness(1.08)}
+
+  /* titlebar */
+  .titlebar{height:44px;display:flex;align-items:center;justify-content:space-between;-webkit-app-region:drag;
+    padding:0 6px 0 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+  .tb-left{display:flex;align-items:center;gap:10px}
+  .tb-left .suits{font-size:15px;letter-spacing:1px}
+  .tb-left b{font-size:14px;font-weight:700}
+  .tb-left .ver{color:var(--muted2);font-size:12px}
+  .tb-btns{display:flex;-webkit-app-region:no-drag}
+  .tb-btns button{width:42px;height:30px;border:0;background:transparent;color:var(--muted);border-radius:7px;cursor:pointer;font-size:13px}
+  .tb-btns button:hover{background:#ffffff12;color:var(--txt)}
+  .tb-btns button.close:hover{background:#e0424d;color:#fff}
+
+  .body{display:flex;height:calc(100vh - 44px)}
+
+  /* sidebar */
+  .side{width:262px;flex:none;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:14px 12px;position:relative;transition:width .18s ease}
+  .avatar{width:44px;height:44px;border-radius:12px;flex:none;background:linear-gradient(135deg,#2a3a4d,#1a2634);
+    display:flex;align-items:center;justify-content:center;color:#9fb2c4;border:1px solid var(--line);overflow:hidden}
+  .avatar img{width:100%;height:100%;object-fit:cover;display:block}
+
+  .nav{display:flex;flex-direction:column;gap:3px;margin-top:6px}
+  .nav a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;color:var(--muted);
+    font-size:14px;font-weight:500;cursor:pointer;text-decoration:none}
+  .nav a svg{width:18px;height:18px;flex:none}
+  .nav a:hover{background:#ffffff08;color:var(--txt)}
+  .nav a.active{background:#12263f;color:#fff}
+  .nav a.active svg{color:var(--blue)}
+  .nav .sep{height:1px;background:var(--line);margin:10px 6px}
+  .side .grow{flex:1}
+  .sidestat{border-top:1px solid var(--line);margin-top:8px;padding:14px 12px 6px;font-size:12.5px;color:var(--text-2);display:flex;flex-direction:column;gap:8px}
+  .sidestat .row{display:flex;justify-content:space-between;gap:10px}
+  .sidestat .row span{color:var(--muted)}
+  .sidestat .row b{font-weight:700;color:var(--text)}
+  .sidestat .g{color:var(--green)!important}
+  .copy{margin-top:12px;color:var(--muted2);font-size:11.5px;display:flex;align-items:center;gap:7px}
+
+  /* content */
+  .content{flex:1;overflow:auto;padding:18px 22px}
+  .content::-webkit-scrollbar,.envscroll::-webkit-scrollbar,.envright::-webkit-scrollbar{width:9px}
+  .content::-webkit-scrollbar-track,.envscroll::-webkit-scrollbar-track,.envright::-webkit-scrollbar-track{background:transparent}
+  .content::-webkit-scrollbar-thumb,.envscroll::-webkit-scrollbar-thumb,.envright::-webkit-scrollbar-thumb{
+    background-color:#2f3f52;border-radius:8px;border:2px solid var(--panel);background-clip:padding-box}
+  .content::-webkit-scrollbar-thumb:hover,.envscroll::-webkit-scrollbar-thumb:hover,.envright::-webkit-scrollbar-thumb:hover{background-color:#425368}
+  .content>section{max-width:1360px;margin:0 auto}
+
+  .empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted2)}
+  .empty .e-ic{font-size:40px;opacity:.4}
+  .hidden{display:none}
+  /* Hızlı işlem toast'ı */
+  #toastBox{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+  .toast{display:flex;align-items:center;gap:10px;background:#182230;border:1px solid var(--line);border-radius:10px;padding:10px 16px;font-size:12.5px;color:var(--txt);box-shadow:0 8px 24px rgba(0,0,0,.35);opacity:0;transform:translateY(8px);transition:opacity .18s,transform .18s}
+  .toast.show{opacity:1;transform:translateY(0)}
+  .toast.ok{border-color:#2c5a37}
+  .toast.err{border-color:#5a2c33}
+  .toast .tspin{width:13px;height:13px;border:2px solid var(--blue);border-right-color:transparent;border-radius:50%;flex:none;animation:spin .6s linear infinite}
+  .toast .tick{color:var(--green);flex:none}
+  .toast .terr{color:var(--red);flex:none}
+
+  /* ========================================================================
+     MAJOR UI/UX UPDATE - tek merkezî override katmanı (ui-ux-pro-max: Data-Dense
+     Dashboard + cinematic dark). Sıfırdan yazma yok; mevcut class'lara uygulanır.
+     ======================================================================== */
+  /* A. Katmanlı arka plan (pure black değil, atmosferik derinlik) */
+  body{background:radial-gradient(1200px 700px at 78% -8%,rgba(74,155,255,.06),transparent 60%),
+       linear-gradient(180deg,#0c131d 0%,var(--bg) 42%,#0a0f17 100%)}
+
+  /* B. ORTAK KART SİSTEMİ - üst-kenar parlaklığı + net sınır + hover-lift.
+     Tüm kart tipleri tek görsel dile gelir. */
+  .stat,.panel,.kpanel,.scard,.acard,.bstat,.qbtn,.acc,.pcard,.lifecard,.cart,.gamehdr,.envleft,.envright,.mode-c{
+    box-shadow:inset 0 1px 0 var(--sheen), 0 1px 2px rgba(0,0,0,.25);
+  }
+  .stat:hover,.bstat:hover,.qbtn:hover,.pcard:hover,.mode-c:hover{
+    border-color:var(--line-2);transform:translateY(-1px);
+    box-shadow:inset 0 1px 0 var(--sheen), 0 6px 18px rgba(0,0,0,.35);
+  }
+  .stat,.bstat,.qbtn,.pcard,.mode-c{transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
+
+  /* C. SEÇİLİ / AKTİF - tutarlı accent border + glow (her yerde aynı dil) */
+  .erow.sel,.pcard.psel,.actile.selx,.atable tr.selx td{
+    box-shadow:inset 3px 0 0 var(--blue), 0 0 0 1px rgba(74,155,255,.25);
+  }
+  .pcard.psel{border-color:var(--pink);box-shadow:0 0 0 1px var(--pink),0 0 16px rgba(255,111,168,.22)}
+  .actile.selx{border-color:var(--blue)!important;box-shadow:0 0 0 2px var(--blue),0 0 14px rgba(74,155,255,.35)}
+  .chip.sel{box-shadow:0 0 0 1px var(--blue),0 2px 8px rgba(74,155,255,.28)}
+  .mode-c.sel{border-color:var(--blue);background:#12263f;box-shadow:inset 0 0 0 1px var(--blue),0 0 18px rgba(74,155,255,.20)}
+  .nav a.active{box-shadow:inset 3px 0 0 var(--blue)}
+
+  /* D. CTA - birincil aksiyon görsel merkez (gradyan + renkli glow) */
+  .btn.blue{background:linear-gradient(180deg,#5aa4ff,#3d8bff);box-shadow:0 4px 16px rgba(74,155,255,.32)}
+  .btn.green{background:linear-gradient(180deg,#69d982,#4fbf68);box-shadow:0 4px 16px rgba(95,208,116,.30)}
+  .btn.red{background:linear-gradient(180deg,#ef6570,#e0505c);box-shadow:0 4px 16px rgba(232,90,102,.28)}
+  .btn:hover{filter:brightness(1.06);transform:translateY(-1px)}
+  .btn{transition:filter .15s ease,transform .15s ease,box-shadow .15s ease}
+  .bigacts .btn.green,.bigacts .btn.blue{box-shadow:0 6px 22px rgba(95,208,116,.30),inset 0 1px 0 rgba(255,255,255,.15)}
+
+  /* E. Focus görünürlüğü (klavye erişilebilirliği) */
+  button:focus-visible,input:focus-visible,select:focus-visible,.chip:focus-visible,[tabindex]:focus-visible{
+    outline:2px solid var(--blue);outline-offset:2px;
+  }
+  /* F. Status pill'lere hafif glow (canlılık) */
+  .status.run{box-shadow:0 0 0 1px rgba(95,208,116,.25),0 0 14px rgba(95,208,116,.15)}
+
+  /* ========================================================================
+     Genel değişiklik: açılır/kapanır sidebar + üst çubukta arama/bildirim/
+     ayarlar/profil + çoklu hesap değiştirici akordiyonu.
+     ======================================================================== */
+  /* G. sol kenar çubuğu - daralt/genişlet */
+  .side-collapse{position:absolute;top:10px;right:-11px;width:22px;height:22px;border-radius:50%;
+    background:var(--card2);border:1px solid var(--line);color:var(--muted);display:flex;align-items:center;
+    justify-content:center;cursor:pointer;z-index:5}
+  .side-collapse:hover{color:var(--txt);border-color:var(--line-2)}
+  .side-collapse svg{transition:transform .18s ease}
+  .side.collapsed{width:76px}
+  .side.collapsed .nav a{justify-content:center;gap:0;padding:10px}
+  .side.collapsed .nav a .lbl,.side.collapsed .sidestat,.side.collapsed .copy{display:none}
+  .side.collapsed .side-collapse svg{transform:rotate(180deg)}
+
+  /* H. üst çubuk orta küme - ara/bildirim/ayarlar + profil */
+  .tb-mid{display:flex;align-items:center;gap:5px;-webkit-app-region:no-drag;padding:0 4px}
+  .tb-icon{width:32px;height:32px;border:0;border-radius:8px;background:transparent;color:var(--muted);
+    display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .tb-icon:hover{background:#ffffff10;color:var(--txt)}
+  .tb-divider{width:1px;height:22px;background:var(--line);margin:0 8px}
+  .tb-profile{display:flex;align-items:center;gap:9px;padding:5px 9px 5px 6px;border-radius:10px;cursor:pointer}
+  .tb-profile:hover,.tb-profile.open{background:#ffffff0a}
+  .tb-profile .nm{font-size:13px;font-weight:700;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tb-profile .st{font-size:11px;color:var(--green);display:flex;align-items:center;gap:5px}
+  .tb-profile .st .d{width:6px;height:6px;border-radius:50%;background:var(--green)}
+  .tb-profile .chev{color:var(--muted2);transition:transform .18s ease;flex:none}
+  .tb-profile.open .chev{transform:rotate(180deg)}
+  .avatar.sm{width:30px;height:30px;border-radius:9px}
+
+  /* I. hesap değiştirici + bildirim açılır panelleri (ortak flyout dili) */
+  .acct-dropdown,.notif-dropdown{position:fixed;top:50px;right:16px;background:var(--card);
+    border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);z-index:60;display:none;overflow:hidden}
+  .acct-dropdown.open,.notif-dropdown.open{display:block}
+  .acct-dropdown{width:240px}
+  .acct-list{max-height:260px;overflow-y:auto;padding:6px}
+  .acct-row{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--txt)}
+  .acct-row:hover{background:#ffffff08}
+  .acct-row.active{background:#12263f}
+  .acct-row .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .acct-row .tag{font-size:10px;font-weight:700;color:var(--green);background:rgba(95,208,116,.12);
+    border:1px solid #2c5a37;border-radius:20px;padding:2px 7px;flex:none}
+  .acct-row .x{color:var(--muted2);padding:2px 5px;border-radius:5px;font-size:12px;line-height:1;flex:none}
+  .acct-row .x:hover{color:var(--red);background:rgba(224,80,92,.14)}
+  .acct-add{display:flex;align-items:center;gap:8px;padding:11px 14px;border-top:1px solid var(--line);
+    color:var(--blue);font-size:12.5px;font-weight:600;cursor:pointer}
+  .acct-add:hover{background:#ffffff08}
+  .notif-dropdown{width:300px}
+  .notif-hd{padding:11px 14px;border-bottom:1px solid var(--line);font-size:12.5px;font-weight:700;color:var(--muted)}
+  .notif-list{max-height:320px;overflow-y:auto;padding:6px}
+  .notif-item{padding:9px 10px;border-radius:8px}
+  .notif-item:hover{background:#ffffff08}
+  .notif-item .a{font-size:12.5px;font-weight:600;color:var(--txt)}
+  .notif-item .b{font-size:12px;color:var(--muted);margin-top:2px}
+  .notif-item .t{font-size:11px;color:var(--muted2);margin-top:4px}
+  .acct-list::-webkit-scrollbar,.notif-list::-webkit-scrollbar{width:9px}
+  .acct-list::-webkit-scrollbar-track,.notif-list::-webkit-scrollbar-track{background:transparent}
+  .acct-list::-webkit-scrollbar-thumb,.notif-list::-webkit-scrollbar-thumb{
+    background-color:#2f3f52;border-radius:8px;border:2px solid var(--card);background-clip:padding-box}
+  .acct-list::-webkit-scrollbar-thumb:hover,.notif-list::-webkit-scrollbar-thumb:hover{background-color:#425368}

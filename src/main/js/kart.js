@@ -1,0 +1,332 @@
+    // ================= KART DÜŞÜR =================
+    // Sayfadaki alanlar gerçek motor verisiyle dolduruluyor (dropGames / farm:tick).
+    let dropGames = [], kartLoaded = false;
+    let selectedMode = 'sequential';
+    let durationSec = 15*60;
+    let lastTick = { running: false, activeAppids: [] };
+
+    // Kuyruk kontrolleri (sıralanabilir sütun başlıkları + Hepsi/1-2/3+ filtresi +
+    // satır içi yukarı/aşağı/En Öne Al/çıkar düğmeleri)
+    let queueSort = 'rank', queueSortDir = 'asc', qfilter = 'all';
+    let priorityOrder = [];          // appid dizisi - "Öncelikli" modun ve elle sıralamanın kaynağı
+    const removedIds = new Set();    // kuyruktan çıkarılanlar (farm'a gönderilmez)
+    const recentDrops = [];          // {appid,name,count,ts} - genel.js'in gerçek düşüş ölçümünden
+
+    const modeLabels = { sequential:'Sıralı', most:'Çok Kart', least:'Az Kart', priority:'Öncelik', fast:'Hızlı' };
+    const modeHints = {
+      sequential: 'Kuyruk sırasına göre tek tek farmlar.',
+      most: 'En çok kartı olan oyunları önceliklendirir.',
+      least: 'Rozetleri hızlı tamamlamak için en az kart kalanlar.',
+      priority: 'Öncelik listendeki oyunları önce düşürür.',
+      fast: 'Steam kart düşürmeye oyun 2 saati geçince başlar. Hızlı mod önce 2 saatin '
+          + 'altındaki oyunları paralel çalıştırıp eşiğe çeker, sonra hepsini birlikte açık '
+          + 'tutup öne çıkan oyunu 1,5-2 dakikada bir değiştirir.'
+    };
+    // listRow(on) / segSet(cur,key) seçili-stil yardımcıları
+    const ROW_ON  = { bg:'#151C28', fg:'#DCE2FA', bd:'#5624B3' };
+    const ROW_OFF = { bg:'transparent', fg:'#8B8F9E', bd:'transparent' };
+    const SEG_ON  = { bg:'#5624B3', fg:'#DCE2FA', bd:'#5624B3' };
+    const SEG_OFF = { bg:'transparent', fg:'#8B8F9E', bd:'transparent' };
+    function paint(el, s){ el.style.background = s.bg; el.style.color = s.fg; el.style.borderColor = s.bd; }
+
+    // Ayarlar > Kart Düşürme tercihlerini sayfaya uygular (varsayılan mod, süre, kuyruk sıralaması).
+    // Kullanıcı sayfada elle değiştirdiyse üzerine yazmaz.
+    let farmUserTouched = false;
+    function applyFarmSettings(){
+      if (typeof appSettings !== 'object' || !appSettings) return;
+      if (!farmUserTouched){
+        if (appSettings.cardPriorityMode && appSettings.cardPriorityMode !== selectedMode) setMode(appSettings.cardPriorityMode);
+        const mins = +appSettings.farmMaxMinutes;
+        if (mins > 0 && durationSec !== mins*60){ durationSec = mins*60; writeDur(); }
+      }
+      const qs = appSettings.queueSort;
+      if (qs && qs !== 'default' && qs !== queueSort){ queueSort = qs; }
+      if (typeof renderKart === 'function' && kartLoaded) renderKart();
+    }
+
+    async function loadKart(){
+      applyFarmToggles();
+      applyFarmSettings();
+      if (kartLoaded) { renderKart(); return; }
+      const q = document.getElementById('kartQueue');
+      q.innerHTML = '<div style="padding:16px;color:#8B8F9E;font-size:12px">Steam\'e bağlanılıyor...</div>';
+      const con = await E.connect();
+      if (!con.ok){ q.innerHTML = '<div style="padding:16px;color:#B32453;font-size:12px">Bağlantı hatası: '+esc(con.error)+'</div>'; return; }
+      const res = await E.dropGames();
+      if (!res.ok){ q.innerHTML = '<div style="padding:16px;color:#B32453;font-size:12px">'+esc(res.error)+'</div>'; return; }
+      dropGames = res.games; kartLoaded = true;
+      priorityOrder = dropGames.map(g=>g.appid);
+      await restoreKartState();
+      renderKart();
+    }
+
+    // ---- kuyruk tercihlerinin kalıcılığı (main.js state.json, saklama süresi Ayarlar'dan) ----
+    // Kullanıcının elle yaptığı sıralama ve kuyruktan çıkardığı oyunlar uygulama kapansa da
+    // geri gelsin. Artık sahip olunmayan appid'ler yüklenirken elenir.
+    const KART_STATE_KEY = 'kart.queue';
+    let kartStateReady = false;
+    async function restoreKartState(){
+      const r = await window.imu.state.get(KART_STATE_KEY).catch(()=>null);
+      const v = r && r.value;
+      if (v && typeof v === 'object'){
+        const own = new Set(dropGames.map(g=>g.appid));
+        (v.removed || []).forEach(id=>{ if (own.has(id)) removedIds.add(id); });
+        if (Array.isArray(v.order) && v.order.length){
+          const kept = v.order.filter(id=>own.has(id));
+          const rest = priorityOrder.filter(id=>!kept.includes(id));
+          priorityOrder = kept.concat(rest);
+        }
+      }
+      kartStateReady = true;
+    }
+    function saveKartState(){
+      if (!kartStateReady) return;
+      window.imu.state.set(KART_STATE_KEY, { removed:[...removedIds], order: priorityOrder }).catch(()=>{});
+    }
+    document.getElementById('btnRefresh').onclick = () => { kartLoaded = false; loadKart(); };
+
+    // Kuyruğa girecek oyunlar: çıkarılanlar hariç, seçili moda göre sıralı.
+    function orderedForMode(){
+      const list = dropGames.filter(g=>!removedIds.has(g.appid));
+      if (selectedMode === 'most') return list.slice().sort((a,b)=>b.remaining-a.remaining);
+      if (selectedMode === 'least') return list.slice().sort((a,b)=>a.remaining-b.remaining);
+      if (selectedMode === 'priority'){
+        return list.slice().sort((a,b)=>{
+          const ia = priorityOrder.indexOf(a.appid), ib = priorityOrder.indexOf(b.appid);
+          return (ia<0?1e9:ia) - (ib<0?1e9:ib);
+        });
+      }
+      return list;
+    }
+
+    // Ekranda gösterilecek liste: mod sırası + filtre + sütun sıralaması .
+    function viewQueue(){
+      const base = orderedForMode();
+      const ranked = base.map((g,i)=>({ ...g, rank: i+1 }));
+      const filtered = ranked.filter(g => qfilter==='all' ? true : qfilter==='low' ? g.remaining<=2 : g.remaining>=3);
+      const activeIds = new Set(lastTick.activeAppids || []);
+      const dir = queueSortDir==='asc' ? 1 : -1;
+      return filtered.slice().sort((a,b)=>{
+        const aa = activeIds.has(a.appid), ba = activeIds.has(b.appid);
+        if (aa !== ba) return aa ? -1 : 1;              // aktif olan her zaman üstte
+        if (queueSort==='name')   return a.name.localeCompare(b.name) * dir;
+        if (queueSort==='remain') return (a.remaining-b.remaining) * dir;
+        return (a.rank-b.rank) * dir;
+      });
+    }
+
+    function renderKart(){
+      const q = document.getElementById('kartQueue');
+      const live = orderedForMode();
+      const total = live.reduce((s,g)=>s+g.remaining,0);
+      document.getElementById('kartKalan').textContent = total;
+      document.getElementById('listeLabel').textContent = 'Düşürme Kuyruğu · ' + live.length + ' Oyun';
+      document.getElementById('dropCount').textContent = recentDrops.length + ' öğe';
+
+      // sıralama okları
+      const arrow = (key) => queueSort===key ? (queueSortDir==='asc'?'▲':'▼') : '';
+      document.getElementById('arrowRank').textContent = arrow('rank');
+      document.getElementById('arrowName').textContent = arrow('name');
+      document.getElementById('arrowRemain').textContent = arrow('remain');
+
+      const rows = viewQueue();
+      if (!rows.length){
+        q.innerHTML = '<div style="padding:16px;color:#8B8F9E;font-size:12px">'
+          + (dropGames.length ? 'Bu filtreye uyan oyun yok.' : 'Düşürülecek kart kalmamış.') + '</div>';
+        renderDrops();
+        return;
+      }
+      const activeIds = new Set(lastTick.activeAppids || []);
+      const currentId = lastTick.currentAppid;
+      const turnPct = lastTick.durationMs ? Math.min(100, Math.round((lastTick.elapsedMs/lastTick.durationMs)*100)) : 0;
+
+      q.innerHTML = rows.map(g=>{
+        const on = activeIds.has(g.appid);
+        const bd = on ? '#5624B3' : '#2B3345';
+        const pct = (g.appid===currentId) ? turnPct : 0;
+        const state = on ? '1. Sırada' : 'Bekliyor';
+        return '<div class="h-bd" data-row="'+g.appid+'" style="border:1px solid '+bd+';border-radius:12px;background:'+(on?'#0D1118':'#090C12')+';padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:8px;opacity:'+(on?1:0.5)+'">'
+          + '<span style="font-family:Geist Mono,monospace;font-size:12px;font-weight:700;color:'+(on?'#B37E24':'#8B8F9E')+';border:1px solid '+bd+';border-radius:12px;padding:4px 0;width:34px;box-sizing:border-box;text-align:center;flex-shrink:0">#'+g.rank+'</span>'
+          // Kutu oranı 920x430 (~2.14:1) - Steam Kütüphane Başlığı ölçütü.
+          + '<div style="width:85px;height:40px;flex-shrink:0;border-radius:10px;border:1px solid #2B3345;background:repeating-linear-gradient(135deg,#151C28 0 5px,#101621 5px 10px);overflow:hidden">'
+            + gameThumb(g.appid)
+          + '</div>'
+          + '<span style="font-size:13px;font-weight:600;color:#DCE2FA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:150px;flex-shrink:0">'+esc(g.name)+'</span>'
+          + '<span style="font-size:11px;color:#8B8F9E;flex-shrink:0;width:64px;border-left:1px solid #1D2432;padding-left:8px">'+g.remaining+' kalan</span>'
+          + '<span style="font-family:Geist Mono,monospace;font-size:11px;color:#8B8F9E;flex-shrink:0;width:84px;border-left:1px solid #1D2432;padding-left:8px">'+g.appid+'</span>'
+          + '<div style="flex:1;min-width:60px;height:5px;border-radius:999px;background:#090C12;border:1px solid #1D2432;overflow:hidden">'
+            + '<div style="height:100%;width:'+pct+'%;border-radius:999px;background:#24AEB3"></div></div>'
+          + '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'
+            + '<span style="height:26px;display:flex;align-items:center;padding:0 10px;border-radius:12px;border:1px solid '+bd+';color:'+(on?'#C2AAEE':'#8B8F9E')+';font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase">'+state+'</span>'
+            + '<div style="display:flex;gap:4px;padding:3px;border-radius:12px;background:#090C12;border:1px solid #1D2432">'
+              + '<button data-act="up" title="Yukarı" class="h-s3" style="width:26px;height:26px;border-radius:999px;background:transparent;border:none;color:#8B8F9E;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 14l6-6 6 6"></path></svg></button>'
+              + '<button data-act="down" title="Aşağı" class="h-s3" style="width:26px;height:26px;border-radius:999px;background:transparent;border:none;color:#8B8F9E;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 10l6 6 6-6"></path></svg></button>'
+            + '</div>'
+            + '<button data-act="top" class="h-brand" style="height:28px;padding:0 12px;border-radius:999px;background:#090C12;border:1px solid #333D4D;color:#B9C0D6;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:6px;flex-shrink:0;white-space:nowrap">'
+              + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M5 5h14M6 16l6-6 6 6"></path></svg>En Öne Al</button>'
+            + '<button data-act="remove" title="Kuyruktan Çıkar" style="width:28px;height:28px;border-radius:999px;background:transparent;border:1px solid #B32453;color:#B32453;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>'
+          + '</div></div>';
+      }).join('');
+      renderDrops();
+    }
+
+    // Satır içi sıra/çıkarma işlemleri - elle sıralama "Öncelikli" moda yazılır (priority
+    // = "Öncelik listendeki oyunları önce düşürür").
+    document.getElementById('kartQueue').addEventListener('click', (e)=>{
+      const btn = e.target.closest('[data-act]'); if (!btn) return;
+      const row = e.target.closest('[data-row]'); if (!row) return;
+      const id = +row.getAttribute('data-row');
+      const act = btn.getAttribute('data-act');
+      if (act === 'remove'){ removedIds.add(id); saveKartState(); renderKart(); return; }
+      // sıra değişikliği öncelik listesinde yapılır ve mod otomatik "Öncelikli"ye geçer
+      if (!priorityOrder.length) priorityOrder = orderedForMode().map(g=>g.appid);
+      const i = priorityOrder.indexOf(id);
+      if (i < 0) return;
+      priorityOrder.splice(i, 1);
+      if (act === 'top') priorityOrder.unshift(id);
+      else if (act === 'up') priorityOrder.splice(Math.max(0, i-1), 0, id);
+      else if (act === 'down') priorityOrder.splice(Math.min(priorityOrder.length, i+1), 0, id);
+      saveKartState();
+      if (selectedMode !== 'priority') setMode('priority');
+      else renderKart();
+    });
+
+    // sütun sıralama
+    function toggleSort(key){
+      if (queueSort === key) queueSortDir = (queueSortDir==='asc' ? 'desc' : 'asc');
+      else { queueSort = key; queueSortDir = 'asc'; }
+      renderKart();
+    }
+    document.getElementById('sortRank').onclick = ()=>toggleSort('rank');
+    document.getElementById('sortName').onclick = ()=>toggleSort('name');
+    document.getElementById('sortRemain').onclick = ()=>toggleSort('remain');
+
+    // filtre segmenti
+    function paintFilter(){
+      document.querySelectorAll('#qFilter button[data-qf]').forEach(b=>paint(b, b.getAttribute('data-qf')===qfilter ? SEG_ON : SEG_OFF));
+    }
+    document.querySelectorAll('#qFilter button[data-qf]').forEach(b=>b.addEventListener('click', ()=>{
+      qfilter = b.getAttribute('data-qf'); paintFilter(); renderKart();
+    }));
+    paintFilter();
+
+    // mod seçimi
+    function setMode(mode){
+      selectedMode = mode;
+      document.querySelectorAll('#modeList button[data-mode]').forEach(b=>paint(b, b.getAttribute('data-mode')===mode ? ROW_ON : ROW_OFF));
+      document.getElementById('durNote').textContent = modeHints[mode] || '';
+      // Hızlı mod süreyi kendi yönetir (motorda sabit rotasyon), zamanlayıcı soluklaşır
+      document.getElementById('durationPanel').style.opacity = (mode==='fast') ? '.45' : '1';
+      renderKart();
+    }
+    document.querySelectorAll('#modeList button[data-mode]').forEach(b=>b.addEventListener('click', ()=>{ farmUserTouched = true; setMode(b.getAttribute('data-mode')); }));
+    setMode('sequential');
+
+    // ---- Oturum zamanlayıcı: HRS : DK : SN ----
+    const kH = document.getElementById('kartH'), kM = document.getElementById('kartM'), kS = document.getElementById('kartS');
+    function writeDur(){
+      const h=Math.floor(durationSec/3600), m=Math.floor((durationSec%3600)/60), s=durationSec%60;
+      kH.value=String(h).padStart(2,'0'); kM.value=String(m).padStart(2,'0'); kS.value=String(s).padStart(2,'0');
+      paintPresets();
+    }
+    function commitDur(){
+      const h=parseInt(kH.value,10)||0, m=Math.min(59,parseInt(kM.value,10)||0), s=Math.min(59,parseInt(kS.value,10)||0);
+      farmUserTouched = true;
+      durationSec = Math.max(30, h*3600 + m*60 + s);   // 30sn altı Steam için anlamsız
+      writeDur();
+    }
+    [kH,kM,kS].forEach(el=>{
+      el.addEventListener('blur', commitDur);
+      el.addEventListener('keydown', e=>{ if(e.key==='Enter'){ commitDur(); el.blur(); } });
+      el.addEventListener('focus', ()=>el.select());
+    });
+    function paintPresets(){
+      document.querySelectorAll('#kartPresets button[data-min]').forEach(b=>{
+        paint(b, (+b.getAttribute('data-min'))*60 === durationSec ? SEG_ON : SEG_OFF);
+      });
+    }
+    document.querySelectorAll('#kartPresets button[data-min]').forEach(b=>b.addEventListener('click', ()=>{
+      farmUserTouched = true; durationSec = (+b.getAttribute('data-min'))*60; writeDur();
+    }));
+    writeDur();
+
+    // ---- Otomasyon anahtarları (ayarlara kalıcı yazılır) ----
+    async function applyFarmToggles(){
+      const s = await window.imu.settings.get().catch(()=>null);
+      if (!s) return;
+      document.querySelectorAll('#tab-kart .e-toggle[data-set]').forEach(el=>{
+        el.classList.toggle('on', !!s[el.getAttribute('data-set')]);
+      });
+    }
+    document.querySelectorAll('#tab-kart .e-toggle[data-set]').forEach(el=>{
+      el.addEventListener('click', async ()=>{
+        const key = el.getAttribute('data-set');
+        const val = !el.classList.contains('on');
+        el.classList.toggle('on', val);
+        const next = await window.imu.settings.set({ [key]: val }).catch(()=>null);
+        if (next && typeof appSettings !== 'undefined') appSettings = next;
+      });
+    });
+
+    // ---- Son Düşüşler (gerçek ölçüm - genel.js'in kart sayacı besliyor) ----
+    function pushDrop(appid, name, count){
+      recentDrops.unshift({ appid, name, count, ts: Date.now() });
+      if (recentDrops.length > 12) recentDrops.length = 12;
+      renderKart();
+    }
+    function renderDrops(){
+      const box = document.getElementById('dropList');
+      if (!box) return;
+      if (!recentDrops.length){
+        box.innerHTML = '<div style="padding:14px 16px;font-size:11px;color:#656D80">Bu oturumda henüz kart düşmedi.</div>';
+        return;
+      }
+      box.innerHTML = recentDrops.map(d=>
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid #101621">'
+        + '<div style="display:flex;align-items:center;gap:11px;min-width:0">'
+          + '<div style="width:32px;height:32px;flex-shrink:0;border-radius:10px;border:1px solid #5FB324;background:#101621;display:flex;align-items:center;justify-content:center">'
+            + '<span style="width:8px;height:8px;border-radius:999px;background:#5FB324"></span></div>'
+          + '<div style="display:flex;flex-direction:column;gap:3px;min-width:0">'
+            + '<span style="font-size:12px;font-weight:600;color:#DCE2FA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+d.count+' kart düştü</span>'
+            + '<span style="font-size:10.5px;color:#656D80;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(d.name)+' · <span style="font-family:Geist Mono,monospace;color:#8B8F9E">'+new Date(d.ts).toLocaleTimeString('tr-TR')+'</span></span>'
+          + '</div></div>'
+        + '<button class="h-brand" data-godrop="'+d.appid+'" style="height:28px;padding:0 12px;border-radius:999px;background:#090C12;border:1px solid #333D4D;color:#B9C0D6;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0">Envanter</button>'
+        + '</div>').join('');
+      box.querySelectorAll('[data-godrop]').forEach(b=>b.addEventListener('click', ()=>{
+        document.querySelector('.nav a[data-tab=env]').click();
+      }));
+    }
+
+    // ---- Başlat / Durdur ----
+    function setKartPill(run){
+      const d = document.getElementById('kartPillDot');
+      if (d) d.style.background = run ? '#5FB324' : '#B37E24';
+    }
+    document.getElementById('btnStart').onclick = () => {
+      // playtimeMin hızlı modun "2 saat" kuralı için gerekli (motor bunu okuyor)
+      const games = orderedForMode().map(g=>({appid:g.appid,name:g.name,remaining:g.remaining,playtimeMin:g.playtimeMin||0}));
+      if (!games.length) return;
+      E.startFarm(selectedMode, games, durationSec*1000);
+      setKartPill(true);
+      let sub = games.length+' oyun sırada.';
+      if (selectedMode === 'fast'){
+        const cold = games.filter(g=>(g.playtimeMin||0) < 120);
+        sub = cold.length
+          ? (cold.length+' oyun 2 saatin altında - önce eşiğe çekilecek, sonra düşüş başlayacak.')
+          : (games.length+' oyunun hepsi 2 saati geçmiş, düşüş hemen başlıyor.');
+      }
+      notify('farm', 'Kart Düşürme Başladı', sub);
+      pushFeed('kart', 'Kart Düşürme', sub, 'Çalışıyor');
+    };
+    document.getElementById('btnStop').onclick = () => {
+      E.stopFarm();
+      setKartPill(false);
+      notify('farm', 'Kart Düşürme Durdu', '');
+      pushFeed('kart', 'Kart Düşürme', 'Durduruldu.', 'Durdu');
+    };
+
+    E.onTick((data) => {
+      lastTick = data;
+      if (kartLoaded) renderKart();
+      setKartPill(!!data.running);
+    });

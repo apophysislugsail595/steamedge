@@ -1,0 +1,52 @@
+{
+  "name": "steamedge",
+  "productName": "SteamEdge",
+  "version": "1.0.0",
+  "description": "Headless Steam trading card farmer, hour booster, achievement manager and market tool. No Steam client required.",
+  "keywords": [
+    "steam",
+    "steam-cards",
+    "trading-cards",
+    "card-farming",
+    "idle-master",
+    "steam-idle",
+    "hour-boost",
+    "playtime-booster",
+    "achievement-manager",
+    "steam-market",
+    "steam-inventory",
+    "electron",
+    "headless",
+    "steam-badges"
+  ],
+  "homepage": "https://github.com/Miabeyefendi/steamedge",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Miabeyefendi/steamedge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Miabeyefendi/steamedge/issues"
+  },
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "node build/build.js",
+    "build:win": "node build/build.js --platform=win32",
+    "postinstall": "node -e \"console.log('SteamEdge: npm start ile calistirin, npm run build ile paketleyin.')\""
+  },
+  "author": "Miabeyefendi (Mustafa Ihsan Albayrak) <https://github.com/Miabeyefendi>",
+  "license": "AGPL-3.0-or-later",
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@electron/packager": "^20.2.0",
+    "electron": "^33.0.0"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "steam-session": "^1.9.4",
+    "steam-totp": "^2.1.2",
+    "steam-user": "^5.3.0"
+  }
+}

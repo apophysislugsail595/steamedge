@@ -1,0 +1,114 @@
+  /* ---- Genel Bakış ---- */
+  .hero{position:relative;background:linear-gradient(120deg,var(--card),#141d29);border:1px solid var(--line);
+    border-radius:var(--radius);padding:26px 28px;overflow:hidden}
+  .hero h1{font-size:26px;font-weight:800}
+  .hero p{color:var(--muted);font-size:14px;margin-top:11px}
+  .hero::before{content:"";position:absolute;inset:0;background:radial-gradient(480px 200px at 88% 20%,rgba(61,139,255,.10),transparent 70%);pointer-events:none}
+  .hero .wm{position:absolute;right:20px;top:50%;transform:translateY(-50%);opacity:.09;font-size:130px;filter:blur(.3px)}
+  .hero .wm2{position:absolute;right:150px;bottom:-18px;opacity:.05;font-size:80px;transform:rotate(-8deg)}
+
+  /* Stat Cards (temp2: üstte ince renk çizgisi + sağ üstte ikon) */
+  .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  .stat-card{background:#191d28;border:1px solid #252a3a;border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;transition:border-color .2s}
+  .stat-card:hover{border-color:#2e3650}
+  .stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+  .stat-card.c1::after{background:linear-gradient(90deg,#f59e0b,#f97316)}
+  .stat-card.c2::after{background:linear-gradient(90deg,#4f8ef7,#818cf8)}
+  .stat-card.c3::after{background:linear-gradient(90deg,#22c55e,#10b981)}
+  .stat-card.c4::after{background:linear-gradient(90deg,#a78bfa,#ec4899)}
+  .stat-icon{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px}
+  .ic1{background:rgba(245,158,11,.12);color:#f59e0b}
+  .ic2{background:rgba(79,142,247,.12);color:#4f8ef7}
+  .ic3{background:rgba(34,197,94,.12);color:#22c55e}
+  .ic4{background:rgba(167,139,250,.12);color:#a78bfa}
+  .stat-label{font-size:10px;font-weight:600;color:#4a5070;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+  .stat-value{font-size:28px;font-weight:800;color:#e8eaf0;line-height:1;letter-spacing:-1px}
+  .stat-sub{font-size:11px;color:#7c8299;margin-top:6px}
+
+  /* Section row: Aktif Durum (1fr, sabit --box-6) + sağ sütun (320px, iki ayrı kutu üst üste) */
+  .section-row{display:grid;grid-template-columns:1fr 320px;gap:16px}
+  .panel{background:#191d28;border:1px solid #252a3a;border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+  .panel-tall{height:var(--box-6)}
+  .section-right{display:flex;flex-direction:column;gap:16px;height:var(--box-6);min-width:0}
+  .panel-flex{flex:1;min-height:0}
+  .panel-qa{flex:none}
+  .panel-header{padding:14px 20px;border-bottom:1px solid #252a3a;display:flex;align-items:center;justify-content:space-between;flex:none}
+  .panel-title{font-size:12px;font-weight:700;color:#cbd5e1;text-transform:uppercase;letter-spacing:.6px;display:flex;align-items:center;gap:8px}
+  .panel-title .dot{width:6px;height:6px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px #22c55e;animation:gpulse-dot 2s infinite}
+  @keyframes gpulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
+  .panel-body{padding:20px;flex:1;min-height:0;display:flex;flex-direction:column}
+  .panel-body.scroll{overflow-y:auto}
+
+  /* Aktif/Boşta rozeti */
+  .gpill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+    background:rgba(34,197,94,.15);color:#22c55e;border:1px solid rgba(34,197,94,.3);box-shadow:0 0 10px rgba(34,197,94,.1)}
+  .gpill.idle{background:rgba(100,116,139,.15);color:#64748b;border-color:rgba(100,116,139,.25);box-shadow:none}
+  .gpill-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+
+  .idle-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 16px;gap:10px;flex:1}
+  .idle-icon{font-size:32px;color:#4a5070;opacity:.4}
+  .idle-text{font-size:13px;color:#4a5070;text-align:center}
+  .idle-hint{font-size:11px;color:#4a5070;opacity:.6;text-align:center}
+
+  /* Aktif Durum - canlı içerik (renderGenelActive) */
+  .gactive-wrap{flex:1;display:flex;flex-direction:column;justify-content:space-evenly}
+  .ghero{display:flex;gap:16px}
+  .ghero .thumb{width:120px;height:68px;border-radius:10px;flex:none;background:linear-gradient(135deg,#7a2d2d,#3a2020);overflow:hidden;border:1px solid #252a3a}
+  .ghero .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .ghero .gi .t{font-size:15px;font-weight:700;color:#e8eaf0}
+  .ghero .gi .m{font-size:12px;color:#4f8ef7;margin-top:4px}
+  .gstrip{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+  .gstrip img{width:28px;height:28px;object-fit:cover;border-radius:6px;opacity:.5;border:2px solid transparent}
+  .gstrip img.on{opacity:1;border-color:#4f8ef7}
+  .barwrap{display:flex;align-items:center;gap:10px;margin-top:14px}
+  .barwrap .bar{flex:1;margin:0;height:6px;border-radius:3px;background:#0d0f14;border:1px solid #252a3a;overflow:hidden;position:relative}
+  .barwrap .bar>span{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#4f8ef7,#818cf8)}
+  .barwrap .bpct{font-size:12px;color:#e8eaf0;font-weight:700;white-space:nowrap;min-width:100px;text-align:right;font-variant-numeric:tabular-nums}
+  .barlbl{font-size:11px;color:#7c8299;margin-top:6px}
+  .gdet{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px 18px;margin-top:14px;padding-top:14px;border-top:1px solid #252a3a}
+  .gdet .r{display:flex;flex-direction:column;gap:2px;font-size:12.5px}
+  .gdet .r span{color:#7c8299;font-size:11px}
+  .gdet .r b{color:#e8eaf0;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
+
+  /* Kart drop-slot görseli (kart.css'teki .drop-slot ile aynı bileşen, ferah boşluk) */
+  .gdropslots{margin-top:14px;padding-top:14px;border-top:1px solid #252a3a}
+  .gdropslots-lbl{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#7c8299;margin-bottom:8px}
+
+  /* Sıradaki Oyunlar (temp6: "Up Next in Queue") */
+  .gqueue-hd{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#7c8299;margin:14px 0 8px}
+  .gqueue-strip{display:flex;gap:10px}
+  .gq-item{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:#141720;border:1px solid #252a3a;border-radius:8px;padding:8px 10px}
+  .gq-item img{width:28px;height:28px;border-radius:6px;object-fit:cover;flex:none;background:#1a1f2e}
+  .gq-info{flex:1;min-width:0}
+  .gq-name{font-size:11.5px;font-weight:600;color:#e8eaf0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .gq-sub{font-size:10px;color:#7c8299;margin-top:1px}
+  .gq-pos{font-size:10px;color:#4f8ef7;font-weight:700;flex:none}
+
+  /* Son Aktiviteler - canlı içerik (renderFeed), nokta+metin (temp2 sadeliği) */
+  .activity-feed{display:flex;flex-direction:column;gap:0;overflow-y:auto;flex:1;min-height:0}
+  .activity-item{display:flex;align-items:flex-start;gap:10px;padding:9px 4px;border-radius:6px;transition:background .1s}
+  .activity-item:hover{background:#1f2333}
+  .activity-dot{width:6px;height:6px;border-radius:50%;flex:none;margin-top:5px}
+  .activity-item.cat-kart .activity-dot{background:#4f8ef7}
+  .activity-item.cat-saat .activity-dot{background:#4f8ef7}
+  .activity-item.cat-pazar .activity-dot{background:#a78bfa}
+  .activity-item.cat-envanter .activity-dot{background:#f59e0b}
+  .activity-item.cat-hata .activity-dot{background:#ef4444}
+  .activity-text{font-size:12px;color:#94a3b8;line-height:1.5}
+  .activity-text b{color:#cbd5e1;font-weight:600}
+  .activity-time{margin-left:auto;font-size:10px;color:#4a5070;flex:none;padding-top:2px}
+  .feed-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;gap:8px;flex:1}
+  .feed-empty-icon{font-size:24px;color:#4a5070;opacity:.3}
+  .feed-empty-text{font-size:12px;color:#4a5070}
+  .clear-btn{height:28px;padding:0 10px;border-radius:6px;background:transparent;border:1px solid #252a3a;color:#4a5070;font-size:10px;cursor:pointer;
+    display:flex;align-items:center;gap:5px;transition:all .15s}
+  .clear-btn:hover{border-color:#ef4444;color:#ef4444}
+
+  /* Hızlı İşlemler - temp2 buton yapısı, sağda ayrı dikey panel (temp2/temp6 ikisinde de sağ sütun) */
+  .qa-col{display:flex;flex-direction:column;gap:8px}
+  .qa-btn{display:flex;align-items:center;gap:10px;padding:0 16px;height:44px;border-radius:9px;font-size:12.5px;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid}
+  .qa-btn.primary{background:linear-gradient(135deg,rgba(79,142,247,.18),rgba(167,139,250,.12));border-color:rgba(79,142,247,.35);color:#93c5fd}
+  .qa-btn.primary:hover{background:linear-gradient(135deg,rgba(79,142,247,.28),rgba(167,139,250,.2));box-shadow:0 0 16px rgba(79,142,247,.2)}
+  .qa-btn.secondary{background:#191d28;border-color:#252a3a;color:#7c8299}
+  .qa-btn.secondary:hover{border-color:#2e3650;color:#94a3b8}
+  .qa-btn i,.qa-btn svg{flex:none}

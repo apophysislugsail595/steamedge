@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>SteamEdge - Giriş Yap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../main/style/edge.css">
+<style>
+  html,body{height:100%;margin:0}
+  body{overflow:hidden;user-select:none}
+  .hide{display:none!important}
+  .bg-grid{background-image:radial-gradient(rgba(255,255,255,.03) 1px,transparent 1px);background-size:32px 32px}
+  .glow{box-shadow:0 0 40px rgba(86,36,179,.18)}
+  .status{min-height:18px;font-size:12px;text-align:center;color:var(--e-off)}
+  .status.err{color:var(--e-bad)}
+  .status.ok{color:var(--e-ok)}
+  .spin{width:30px;height:30px;border:3px solid var(--e-bd);border-top-color:var(--e-brand);border-radius:50%;animation:sp 1s linear infinite;margin:0 auto}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .lgfield label{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--e-muted);margin-left:2px}
+  .lgfield{display:flex;flex-direction:column;gap:7px}
+  .lgfield .wrap{position:relative;display:flex;align-items:center}
+  .lgfield svg{position:absolute;left:13px}
+  .lgfield input{width:100%;height:42px;border-radius:12px;background:var(--e-bg);border:1px solid var(--e-bd);color:var(--e-title);font-size:13px;padding:0 14px 0 38px;outline:none}
+  .lgfield input:focus{border-color:var(--e-bdFocus)}
+  .lgfield input::placeholder{color:var(--e-off)}
+  .lgbtn{height:42px;border-radius:999px;background:var(--e-brand);border:1px solid var(--e-brand);color:var(--e-title);font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+  .lgbtn:hover{background:var(--e-brandHover);border-color:var(--e-brandHover)}
+  .back{color:var(--e-off);font-size:12px;cursor:pointer;text-align:center}
+  .back:hover{color:var(--e-body)}
+  .panel-account{position:relative;width:352px;flex-shrink:0;padding:44px 36px;display:flex;flex-direction:column;gap:18px;border-left:1px solid var(--e-bdPassive)}
+  .panel-remove{position:absolute;top:14px;right:14px;width:26px;height:26px;border-radius:999px;background:transparent;border:1px solid var(--e-bd);color:var(--e-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2}
+  .panel-remove:hover{border-color:var(--e-bad);color:var(--e-bad)}
+  .panel-tag{margin:0;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--e-muted)}
+  .panel-success{display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px 6px;text-align:center}
+</style>
+</head>
+<body class="edge" style="background:var(--e-bg);color:var(--e-body);height:100vh;display:flex;flex-direction:column;position:relative;overflow:hidden">
+  <div style="position:absolute;inset:0;pointer-events:none" class="bg-grid"></div>
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:600px;height:600px;background:rgba(86,36,179,.06);border-radius:999px;filter:blur(120px);pointer-events:none"></div>
+
+  <!-- TITLEBAR (Electron frameless pencere gereksinimi) -->
+  <div class="e-titlebar" style="position:relative;z-index:10">
+    <span></span>
+    <div class="e-tb-btns">
+      <button id="min">&#x2212;</button>
+      <button id="max">&#x2610;</button>
+      <button id="close" class="e-close">&#x2715;</button>
+    </div>
+  </div>
+
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;position:relative;z-index:10;padding:32px;overflow:auto">
+    <div style="display:flex;max-width:100%;overflow-x:auto;border:1px solid var(--e-bd);border-radius:12px;background:var(--e-s1)" class="glow">
+
+      <!-- SOL MARKA PANELİ -->
+      <div style="width:360px;flex-shrink:0;padding:40px 36px;display:flex;flex-direction:column;justify-content:space-between;background:var(--e-bgAlt)">
+        <div style="display:flex;align-items:center;gap:12px">
+          <img src="../assets/logo-mark.png" alt="" style="height:48px;width:auto;display:block">
+          <span style="font-size:17px;font-weight:700;letter-spacing:-.01em;color:var(--e-title)">Steam<span style="color:var(--e-brand)">Edge</span></span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;margin:40px 0">
+          <p style="margin:0;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--e-muted)">Steam Kart Toplama Paketi</p>
+          <h1 style="margin:0;font-size:28px;line-height:1.1;font-weight:700;letter-spacing:-.02em;color:var(--e-title)">Kart toplama, envanter ve pazar - tek konsolda.</h1>
+          <p style="margin:0;font-size:13px;line-height:1.6;color:var(--e-muted);max-width:34ch">Oturumunu aç, kuyruğunu kur ve arka planda çalıştır. Uygulama Steam ağıyla senkronize kalır.</p>
+        </div>
+        <div style="display:flex;gap:22px">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <span style="font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--e-off)">Sürüm</span>
+            <span style="font-family:'Geist Mono',monospace;font-size:13px;font-weight:700;color:var(--e-title)">v1.0.0</span>
+          </div>
+          <div style="width:1px;background:var(--e-bdPassive)"></div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <span style="font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--e-off)">Motor</span>
+            <span style="font-family:'Geist Mono',monospace;font-size:13px;font-weight:700;color:var(--e-ok)">HEADLESS</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="slotsRow" style="display:flex;overflow-x:auto;max-width:calc(100vw - 460px)"></div>
+    </div>
+  </div>
+
+  <div id="multiPrompt" style="position:relative;z-index:10;text-align:center;padding-bottom:22px;flex-shrink:0">
+    <p style="color:var(--e-off);font-size:12px;margin:0">Birden fazla hesabınız mı var?</p>
+    <button id="multiAddBtn" style="margin-top:6px;background:transparent;border:0;color:var(--e-body);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer">+ Hesap Ekle</button>
+  </div>
+
+  <script src="../main/js/i18n.js"></script>
+  <script>
+    // Giris ekraninda da secili dil uygulanir (ayarlar main surecten okunur).
+    window.imu.settings.get().then(s => { if (typeof initI18n === 'function') initI18n(s && s.language); }).catch(()=>{});
+    const A = window.imu, $id = id => document.getElementById(id);
+    $id('min').onclick=()=>A.win.minimize(); $id('max').onclick=()=>A.win.maximize(); $id('close').onclick=()=>A.win.close();
+
+    const slotsRow = $id('slotsRow');
+    const addBox = document.createElement('div');
+    addBox.style.cssText = 'width:96px;flex-shrink:0;border-left:1px solid var(--e-bdPassive);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--e-off);cursor:pointer';
+    addBox.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em">Ekle</span>';
+    addBox.onmouseenter = () => { addBox.style.color = 'var(--e-brandActive)'; };
+    addBox.onmouseleave = () => { addBox.style.color = 'var(--e-off)'; };
+    addBox.onclick = () => addSlot();
+    // (+) kutusu varsayılan görünümde YOK - sadece "Birden fazla hesabınız mı var?" ile açılır.
+
+    let slotCount = 0;
+    const activeSlots = new Set();
+
+    // İkincil hesap kutuları için hue-cycle: ana hesap her zaman marka moru kalır, sonrakiler bu sırayla.
+    const SLOT_COLORS = ['#24AEB3', '#B37E24', '#a78bfa', '#B32453', '#ec4899', '#22d3ee'];
+    function colorFor(i) { return i === 0 ? '#5624B3' : SLOT_COLORS[(i - 1) % SLOT_COLORS.length]; }
+
+    function resizeWindow() {
+      const n = Math.max(1, activeSlots.size);
+      const addBoxW = addBox.parentNode ? 96 : 0;
+      const w = 360 + Math.min(n, 3) * 352 + addBoxW + 64;
+      // Pencere varsayılan 1716 genişlikte açılır - sadece çok hesap eklenince bunun üzerine çıkar.
+      A.win.setWidth(Math.max(1716, w));
+    }
+
+    function revealMultiAccount() {
+      $id('multiPrompt').classList.add('hide');
+      slotsRow.appendChild(addBox);
+      addSlot();
+    }
+    $id('multiAddBtn').onclick = revealMultiAccount;
+
+    function slotHTML(i) {
+      const c = colorFor(i);
+      return '<div class="panel-account" data-slot="' + i + '" id="slotCard-' + i + '">'
+        + (i > 0 ? '<div class="panel-remove" data-remove="' + i + '"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 6l12 12M18 6L6 18"/></svg></div>' : '')
+        + '<p class="panel-tag" style="color:' + c + '">' + (i === 0 ? 'Ana Hesap' : 'Ek Hesap #' + (i + 1)) + '</p>'
+        + '<div id="stLogin-' + i + '" style="display:flex;flex-direction:column;gap:16px">'
+          + '<div class="lgfield"><label>Kullanıcı adı</label><div class="wrap"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8B8F9E" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M5 21c0-3.6 3.1-6 7-6s7 2.4 7 6"/></svg><input id="acc-' + i + '" spellcheck="false" autocomplete="off" placeholder="steam kullanıcı adı"></div></div>'
+          + '<div class="lgfield"><label>Parola</label><div class="wrap"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8B8F9E" stroke-width="1.8"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><input id="pw-' + i + '" type="password" placeholder="••••••••••"></div></div>'
+          + '<div id="guardField-' + i + '" class="lgfield hide"><label id="guardLbl-' + i + '">Steam Guard kodu</label><div class="wrap"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8B8F9E" stroke-width="1.8"><path d="M12 3l8 3v6c0 4.5-3 7.5-8 9-5-1.5-8-4.5-8-9V6z"/></svg><input id="guard-' + i + '" spellcheck="false" autocomplete="off" placeholder="kod" style="text-transform:uppercase"></div></div>'
+          + '<button id="go-' + i + '" class="lgbtn" style="background:' + c + ';border-color:' + c + '">Giriş yap</button>'
+          + '<div class="status" id="status-' + i + '"></div>'
+        + '</div>'
+        + '<div id="stPrep-' + i + '" class="hide" style="display:flex;flex-direction:column;align-items:center;gap:12px">'
+          + '<div class="spin"></div>'
+          + '<div style="color:var(--e-muted);font-size:12px;text-align:center" id="prepMsg-' + i + '">Bağlanıldı, hazırlanıyor...</div>'
+          + '<div id="smsWrap-' + i + '" class="hide" style="width:100%;display:flex;flex-direction:column;gap:10px">'
+            + '<div class="lgfield"><label id="smsLbl-' + i + '">Telefona gelen kod (maFile için)</label><input id="sms-' + i + '" spellcheck="false" placeholder="kod" style="height:42px;border-radius:12px;background:var(--e-bg);border:1px solid var(--e-bd);color:var(--e-title);font-size:13px;padding:0 14px;outline:none"></div>'
+            + '<button id="smsGo-' + i + '" class="lgbtn" style="background:var(--e-ok);border-color:var(--e-ok);color:#062400">Onayla</button>'
+            + '<div class="back" id="smsSkip-' + i + '">Atla (maFile\'sız devam)</div>'
+          + '</div>'
+        + '</div>'
+        + '<div id="stSuccess-' + i + '" class="panel-success hide">'
+          + '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--e-ok)" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>'
+          + '<div style="font-size:13px;font-weight:700;color:var(--e-title)" id="successName-' + i + '">Giriş başarılı</div>'
+          + '<div style="font-size:11px;color:var(--e-off)">Bu hesap eklendi.</div>'
+        + '</div>'
+      + '</div>';
+    }
+
+    function addSlot() {
+      const i = slotCount++;
+      activeSlots.add(i);
+      const holder = document.createElement('div');
+      holder.innerHTML = slotHTML(i);
+      const card = holder.firstElementChild;
+      if (addBox.parentNode) slotsRow.insertBefore(card, addBox);
+      else slotsRow.appendChild(card);
+      wireSlot(i);
+      resizeWindow();
+      $id('acc-' + i).focus();
+    }
+
+    function removeSlot(i) {
+      A.auth.cancel(i);
+      const card = $id('slotCard-' + i);
+      if (card) card.remove();
+      activeSlots.delete(i);
+      resizeWindow();
+    }
+
+    function setStatus(i, m, k) {
+      const st = $id('status-' + i);
+      if (!st) return;
+      st.className = 'status' + (k ? ' ' + k : '');
+      st.textContent = m || '';
+    }
+
+    function wireSlot(i) {
+      const g = id => $id(id + '-' + i);
+      g('go').onclick = () => {
+        if (!g('guardField').classList.contains('hide')) {
+          const c = g('guard').value.trim();
+          if (!c) { setStatus(i, 'Kodu gir.', 'err'); return; }
+          A.auth.submitGuard(i, c); setStatus(i, 'Kod gönderiliyor...'); return;
+        }
+        const a = g('acc').value.trim(), p = g('pw').value;
+        if (!a || !p) { setStatus(i, 'Kullanıcı adı ve parola gerekli.', 'err'); return; }
+        setStatus(i, 'Bağlanılıyor...'); A.auth.startCredentials(i, a, p);
+      };
+      g('acc').addEventListener('keydown', e => { if (e.key === 'Enter') g('pw').focus(); });
+      g('pw').addEventListener('keydown', e => { if (e.key === 'Enter') g('go').click(); });
+      g('guard').addEventListener('keydown', e => { if (e.key === 'Enter') g('go').click(); });
+      g('smsGo').onclick = () => { setStatus(i, ''); A.auth.finalizeMaFile(i, g('sms').value.trim()); };
+      g('smsSkip').onclick = () => finishSlot(i);
+    }
+
+    // slot 0 = ana kutu: başarıyla bitince panele geçilir. Diğer kutular arka planda kalabilir,
+    // sadece kendi kartında "başarılı" durumunu gösterir - pencere kapanmaz.
+    function finishSlot(i) {
+      if (String(i) === '0') { A.goDashboard(); return; }
+      const login = $id('stLogin-' + i), prep = $id('stPrep-' + i), ok = $id('stSuccess-' + i);
+      if (login) login.classList.add('hide');
+      if (prep) prep.classList.add('hide');
+      if (ok) ok.classList.remove('hide');
+    }
+
+    A.auth.on('status', d => setStatus(d.slotId, d.message));
+    A.auth.on('error', d => setStatus(d.slotId, d.message, 'err'));
+    A.auth.on('guard', d => {
+      const i = d.slotId;
+      const gf = $id('guardField-' + i); if (!gf) return;
+      gf.classList.remove('hide');
+      $id('guardLbl-' + i).textContent = d.email ? 'E-posta / Steam Guard kodu' : 'Steam Guard kodu (SMS / uygulama)';
+      $id('go-' + i).textContent = 'Kodu Gönder';
+      setStatus(i, 'Doğrulama kodu gerekli.');
+    });
+    A.auth.on('authenticated', d => {
+      const i = d.slotId;
+      const login = $id('stLogin-' + i), prep = $id('stPrep-' + i);
+      if (!login || !prep) return;
+      login.classList.add('hide'); prep.classList.remove('hide');
+      $id('prepMsg-' + i).textContent = (d.accountName ? d.accountName + ' - ' : '') + 'giriş başarılı, hazırlanıyor...';
+      $id('successName-' + i).textContent = d.accountName ? ('✓ ' + d.accountName) : 'Giriş başarılı';
+      setTimeout(() => finishSlot(i), 800);
+    });
+    A.auth.on('mafileGuard', d => {
+      const i = d.slotId;
+      const w = $id('smsWrap-' + i); if (!w) return;
+      w.classList.remove('hide');
+      $id('prepMsg-' + i).textContent = 'maFile için telefona kod gönderildi.';
+    });
+    A.auth.on('mafile', d => {
+      const i = d.slotId;
+      const m = $id('prepMsg-' + i); if (!m) return;
+      m.textContent = d.ok ? 'maFile kaydedildi. Devam ediliyor...' : 'Devam ediliyor...';
+      setTimeout(() => finishSlot(i), d.ok ? 900 : 600);
+    });
+
+    slotsRow.addEventListener('click', e => {
+      const rm = e.target.closest('[data-remove]');
+      if (rm) removeSlot(+rm.getAttribute('data-remove'));
+    });
+
+    addSlot(); // slot 0: her zaman baştan açık
+  </script>
+</body>
+</html>

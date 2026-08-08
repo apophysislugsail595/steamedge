@@ -1,0 +1,105 @@
+  /* ---- Saat Yükseltici ---- */
+  #tab-saat .stat{position:relative;overflow:hidden}
+  .ic{position:absolute;right:12px;top:12px;width:34px;height:34px;opacity:.16;pointer-events:none}
+  .saatcols{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:18px;align-items:stretch}
+  /* Hedef süre preset'leri + eş zamanlı sayısı (active-boost teknik yapısı, IMU teması) */
+  .tbadge{padding:0 13px;height:32px;display:inline-flex;align-items:center;border-radius:var(--radius-sm);background:var(--card2);
+          border:1px solid var(--line);font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s}
+  .tbadge:hover{border-color:var(--line-2);color:var(--txt)}
+  .tbadge.sel{background:rgba(86,36,179,.18);border-color:var(--blue);color:#C2AAEE;box-shadow:0 0 0 1px var(--blue),0 2px 10px rgba(86,36,179,.25)}
+  .ccrow{display:flex;gap:7px}
+  .ccbtn{flex:1;height:32px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-sm);background:var(--card2);
+         border:1px solid var(--line);font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s}
+  .ccbtn:hover{border-color:var(--line-2);color:var(--txt)}
+  .ccbtn.sel{background:rgba(181,150,255,.16);border-color:var(--purple);color:#d5c4ff;box-shadow:0 0 0 1px var(--purple)}
+  /* Session Timer - büyük saat (active-boost tematiği, IMU token'ları) */
+  .bigclock{display:flex;align-items:flex-start;justify-content:center;gap:10px;padding:4px 0 2px}
+  .bc-seg{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .bc-seg input{width:78px;height:62px;text-align:center;font-size:32px;font-weight:800;background:#0e1620;
+                border:1px solid var(--line);border-radius:12px;color:var(--txt);outline:none;font-variant-numeric:tabular-nums;letter-spacing:-1px}
+  .bc-seg input:focus{border-color:var(--blue);box-shadow:0 0 0 1px var(--blue)}
+  .bc-seg input.accent{color:#a9cdff}
+  .bc-seg span{font-size:9px;letter-spacing:1.4px;color:var(--muted2);font-weight:800}
+  .bc-sep{font-size:28px;font-weight:800;color:var(--muted2);line-height:62px}
+  /* Oyun listesi satırı (timebooster select tablosu: nokta + ad + saat + ekle butonu) */
+  .grow2{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid #1e2836;cursor:pointer;border-left:2px solid transparent}
+  .grow2:hover{background:rgba(255,255,255,.03)}
+  .grow2.sel{background:rgba(74,155,255,.08);border-left-color:var(--blue)}
+  .gdot{width:6px;height:6px;border-radius:50%;background:var(--line-2);flex:none}
+  .grow2.sel .gdot{background:var(--blue)}
+  .gnm{flex:1;min-width:0;font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .grow2.sel .gnm{color:#a9cdff;font-weight:600}
+  .ghrs{font-size:10.5px;color:var(--muted2);flex:none;font-variant-numeric:tabular-nums}
+  .addbtn{width:24px;height:24px;border-radius:6px;background:var(--card2);border:1px solid var(--line);display:flex;
+          align-items:center;justify-content:center;color:var(--muted2);font-size:11px;cursor:pointer;flex:none;transition:all .15s}
+  .addbtn:hover{background:rgba(74,155,255,.12);color:var(--blue);border-color:var(--blue)}
+  .addbtn.on{background:rgba(74,155,255,.16);color:var(--blue);border-color:var(--blue)}
+  .qx{width:24px;height:24px;border-radius:6px;background:var(--card2);border:1px solid var(--line);display:flex;
+      align-items:center;justify-content:center;color:var(--muted2);font-size:10px;cursor:pointer;flex:none;transition:all .15s}
+  .qx:hover{color:var(--red);border-color:var(--red);background:rgba(232,90,102,.1)}
+  .pnhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+  .pncount{font-size:11px;color:var(--muted2);font-weight:600}
+  /* Kuyruk satırı (timebooster queue yapısı) */
+  .qrow{display:flex;align-items:center;gap:10px;padding:8px 8px;border-bottom:1px solid #1e2836}
+  .qrow:last-child{border-bottom:0}
+  .qnum{width:20px;height:20px;border-radius:6px;background:var(--card2);border:1px solid var(--line);display:flex;align-items:center;
+        justify-content:center;font-size:10px;font-weight:800;color:var(--muted);flex:none}
+  .qrow.on .qnum{background:rgba(86,36,179,.22);border-color:var(--blue);color:#C2AAEE}
+  .qname{flex:1;min-width:0;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .qtarget{font-size:10.5px;color:var(--muted2);font-variant-numeric:tabular-nums;flex:none}
+  /* Boost kartı (active-boost görseli + Live rozeti; sıra kuyruktan gelir) */
+  .bcard{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:9px;background:var(--card2)}
+  .bcard.live{border-color:rgba(95,208,116,.35);box-shadow:0 0 0 1px rgba(95,208,116,.12)}
+  .bcard-head{position:relative;height:62px}
+  .bcard-head img{width:100%;height:100%;object-fit:cover;opacity:.4;display:block}
+  .bcard-scrim{position:absolute;inset:0;background:linear-gradient(90deg,rgba(11,17,25,.95) 0%,rgba(11,17,25,.55) 100%)}
+  .bcard-top{position:absolute;inset:0;display:flex;align-items:center;gap:9px;padding:0 10px}
+  .bcard-num{width:20px;height:20px;border-radius:6px;background:rgba(11,17,25,.85);border:1px solid var(--line);display:flex;
+             align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#a9cdff;flex:none}
+  .bcard-name{font-size:13px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bcard-sub{font-size:10px;color:var(--muted);margin-top:1px}
+  .blive{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:9.5px;font-weight:800;
+         background:rgba(95,208,116,.15);color:#8ee39d;border:1px solid rgba(95,208,116,.35);flex:none}
+  .blive i{width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block;animation:blink 2s infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+  .bcard-body{padding:8px 10px 9px;display:flex;flex-direction:column;gap:6px}
+  .bclock{font-size:15px;font-weight:800;color:var(--green);font-variant-numeric:tabular-nums}
+  .bstop{font-size:10.5px;font-weight:700;color:rgba(232,90,102,.75);cursor:pointer;background:none;border:0;padding:0}
+  .bstop:hover{color:var(--red)}
+  .btrack{height:5px;border-radius:3px;background:#0e1620;border:1px solid var(--line);overflow:hidden}
+  .btrack>i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--green),#8ee39d)}
+  .knum{font-size:15px;font-weight:700;margin-bottom:14px}
+  .tabsm{display:flex;gap:6px;margin-bottom:12px}
+  .tabsm span{font-size:13px;padding:8px 13px;border-radius:8px;color:var(--muted);cursor:pointer}
+  .tabsm span.sel{background:#12263f;color:#fff}
+  .glist{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:12px}
+  .glist table{width:100%;border-collapse:collapse;font-size:13px}
+  .glist th{text-align:left;font-size:11.5px;color:var(--muted);font-weight:600;padding:9px 12px;background:var(--card2)}
+  .glist th.r,.glist td.r{text-align:right}
+  .glist td{padding:9px 12px;border-top:1px solid #1e2836}
+  .glist td.r{color:var(--muted)}
+  .glist tr:hover td{background:#18232f}
+  .found{font-size:12px;color:var(--muted);margin-top:10px}
+  .selbox{display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:8px}
+  .selbox .x{margin-left:auto;color:var(--muted);cursor:pointer}
+  .frow{margin:16px 0}
+  .frow .lb{font-size:13px;font-weight:600;margin-bottom:9px;display:flex;align-items:center;gap:6px}
+  .frow .sq2{font-size:11.5px;color:var(--muted);margin-top:8px}
+  .hstep{display:flex;align-items:center;gap:12px}
+  .hstep .hv{font-size:30px;font-weight:800;color:var(--blue)}
+  .hstep .hp{margin-left:auto;display:flex;gap:8px}
+  .mini{display:flex;align-items:center;gap:10px}
+  .mini .v{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:8px 18px;font-size:14px;font-weight:600;min-width:46px;text-align:center}
+  .mini .lft{flex:1;font-size:11.5px;color:var(--muted)}
+  .estate{border:1px dashed var(--line);border-radius:10px;padding:40px 16px;text-align:center;color:var(--muted)}
+  .estate .ei{opacity:.45;margin-bottom:12px}
+  .estate .a{font-size:13.5px;color:var(--txt)}
+  .estate .b{font-size:12px;margin-top:5px}
+  .qhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .qhead .qacts{display:flex;gap:10px;color:var(--muted)}.qhead .qacts svg{cursor:pointer}
+  .slotinfo{font-size:12px;color:var(--muted)}
+  .stats5{display:grid;grid-template-columns:repeat(5,1fr);gap:16px}
+  .bstat{display:flex;align-items:center;gap:15px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+  .bstat .bi{width:44px;height:44px;border-radius:11px;flex:none;display:flex;align-items:center;justify-content:center}
+  .bstat .num{font-size:21px;font-weight:800}
+  .bstat .lbl{font-size:12px;color:var(--muted);margin-top:2px}
