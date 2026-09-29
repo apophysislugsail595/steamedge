@@ -288,7 +288,7 @@
             + '<span style="width:8px;height:8px;border-radius:999px;background:#5FB324"></span></div>'
           + '<div style="display:flex;flex-direction:column;gap:3px;min-width:0">'
             + '<span style="font-size:12px;font-weight:600;color:#DCE2FA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+d.count+' kart düştü</span>'
-            + '<span style="font-size:10.5px;color:#656D80;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(d.name)+' · <span style="font-family:Geist Mono,monospace;color:#8B8F9E">'+new Date(d.ts).toLocaleTimeString('tr-TR')+'</span></span>'
+            + '<span style="font-size:10.5px;color:#656D80;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(d.name)+' · <span style="font-family:Geist Mono,monospace;color:#8B8F9E">'+new Date(d.ts).toLocaleTimeString(window.i18nLocale())+'</span></span>'
           + '</div></div>'
         + '<button class="h-brand" data-godrop="'+d.appid+'" style="height:28px;padding:0 12px;border-radius:999px;background:#090C12;border:1px solid #333D4D;color:#B9C0D6;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0">Envanter</button>'
         + '</div>').join('');

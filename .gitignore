@@ -296,3 +296,6 @@ maFiles/
 
 # Not committed: local push notes
 PUSH-REHBERI.txt
+
+# Keep the required Windows app icon in the published source.
+!src/assets/icon.ico

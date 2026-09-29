@@ -70,7 +70,115 @@
       applyInvSettings();
       buildGameSelect();
       renderEnv();
+      await onbellektenDoldur();
       askFetchPrices();
+    }
+
+    // Sayfa acilirken once DISKTEKI onbellegi oku. Steam'e istek gitmez, aninda doner.
+    // Onbellek varsa fiyatlar zaten ekranda olur ve kullaniciya bir sey sorulmaz;
+    // onbellegin var olma sebebi buydu, eskiden her acilista bastan cekiliyordu.
+    async function onbellektenDoldur(){
+      const hashes = hashesForView();
+      if (!hashes.length) return;
+      const res = await E.pricesForCached(hashes).catch(()=>null);
+      if (res && res.ok && res.prices){
+        Object.entries(res.prices).forEach(([h,p]) => priceMap.set(h,p));
+        if (Object.keys(res.prices).length){
+          fetchedSig = viewSignature();
+          renderEnv(); paintFetchBtn();
+        }
+      }
+      // G8: ortalamalar da diskte tutuluyor; varsa aninda goster, Steam'e istek gitmez.
+      const hres = await E.historyForCached(hashes).catch(()=>null);
+      if (hres && hres.ok && hres.history){
+        let eklendi = 0;
+        Object.entries(hres.history).forEach(([h,x]) => { if (x){ historyMap.set(h,x); eklendi++; } });
+        if (eklendi){ renderEnv(); }
+      }
+      paintAvgBtn();
+    }
+
+    // ---- G8: ORTALAMA (gerceklesen satis medyani) TOPLU CEKME ----
+    // Neden ayri dugme: liste fiyati (priceoverview) tek istekte coklu gelmiyor ama ucuz;
+    // satis gecmisi (pricehistory) HER OGE icin ayri istek istiyor. Steam limiti hesap
+    // basina ~20 istek / 30 saniye. 200 ogelik envanterde bu dakikalar surer, o yuzden
+    // kullanici acikca istemeden baslamiyor ve istedigi an iptal edebiliyor.
+    let avgCekiliyor = false, avgYapilan = 0, avgToplam = 0;
+    function paintAvgBtn(){
+      const b = document.getElementById('envFetchAvg');
+      if (!b) return;
+      const hepsi = hashesForView();
+      const eksik = hepsi.filter(h => !historyMap.has(h)).length;
+      if (avgCekiliyor){
+        b.disabled = false;                       // iptal edilebilsin
+        b.textContent = tf('İptal Et · # / #', avgYapilan, avgToplam);
+        b.style.borderColor = '#B37E24'; b.style.color = '#B37E24';
+        b.style.cursor = 'pointer';
+        return;
+      }
+      b.disabled = false;
+      b.style.cursor = 'pointer';
+      if (!hepsi.length){ b.textContent = t('Ortalamaları Getir'); b.style.borderColor = '#2B3345'; b.style.color = '#656D80'; return; }
+      if (!eksik){
+        b.textContent = tf('Ortalamalar Güncel · #', hepsi.length);
+        b.style.borderColor = '#5FB324'; b.style.color = '#5FB324';
+      } else {
+        b.textContent = tf('Ortalamaları Getir · #', eksik);
+        b.style.borderColor = '#5624B3'; b.style.color = '#C2AAEE';
+      }
+    }
+
+    async function fetchAvgForView(){
+      if (avgCekiliyor){ E.historyCancel(); return; }
+      const hepsi = hashesForView();
+      const eksik = hepsi.filter(h => !historyMap.has(h));
+      if (!eksik.length){
+        if (typeof toast === 'function') toast('Ortalama').done('Bu filtredeki tüm ortalamalar zaten var.');
+        return;
+      }
+      // Steam limiti yuzunden uzun surebilir - kullaniciya sureyi ONCEDEN soyle.
+      const tahminSn = Math.ceil(eksik.length * 1.6);
+      const ok = await edgeConfirm({
+        tag:t('Ortalama Fiyatlar'),
+        title: tf('# öğe için gerçekleşen satış geçmişi çekilecek', eksik.length),
+        body: t('Ortalama (medyan) değer, Steam pazarında GERÇEKLEŞEN satışlardan hesaplanır. Liste fiyatının aksine her öğe için ayrı istek gerekir.')+'\n\n'
+              + (tahminSn > 90 ? tf('Tahmini süre: # dakika', Math.ceil(tahminSn/60)) : tf('Tahmini süre: # saniye', tahminSn)),
+        warn: t('Steam hesap başına yaklaşık 20 istek / 30 saniye sınırı uygular. İşlem sürerken uygulamayı kullanmaya devam edebilir, istediğin an iptal edebilirsin.'),
+        confirmText:t('Başlat'), cancelText:t('Vazgeç'),
+      });
+      if (!ok) return;
+      avgCekiliyor = true; avgYapilan = 0; avgToplam = eksik.length;
+      paintAvgBtn();
+      const res = await E.historyFor(eksik).catch(()=>null);
+      if (!res || !res.ok){
+        avgCekiliyor = false; paintAvgBtn();
+        if (typeof toast === 'function') toast('Ortalama').fail((res && res.error) || 'İstek başarısız.');
+      }
+    }
+
+    if (E.onHistoryOne){
+      E.onHistoryOne((d)=>{
+        if (d && d.hashName && d.history) historyMap.set(d.hashName, d.history);
+        // Tek tek yeniden cizmek 200 ogede pahali; ilerleme olayinda toplu ciziyoruz.
+      });
+    }
+    if (E.onHistoryProgress){
+      E.onHistoryProgress((d)=>{
+        if (!d) return;
+        avgYapilan = d.yapilan || 0; avgToplam = d.toplam || avgToplam;
+        if (d.bitti){
+          avgCekiliyor = false;
+          renderEnv(); paintAvgBtn();
+          if (typeof toast === 'function'){
+            if (d.iptal) toast('Ortalama').done('İptal edildi · ' + avgYapilan + ' öğe alındı.');
+            else toast('Ortalama').done(avgYapilan + ' öğenin ortalaması güncellendi.');
+          }
+          return;
+        }
+        paintAvgBtn();
+        // Her 10 ogede bir listeyi tazele - surekli cizim yapmadan ilerleme gorunsun
+        if (avgYapilan % 10 === 0) renderEnv();
+      });
     }
 
     // Ayarlar ekranındaki Envanter tercihleri (varsayılan sıralama, düşük değer eşiği vb.)
@@ -81,7 +189,7 @@
       const sym = (typeof curSym === 'function') ? curSym() : '₺';
       const sel = document.getElementById('efPrice');
       if (sel){
-        const labels = { all:'Tüm fiyatlar', '0-1':'0 - 1 '+sym, '1-5':'1 - 5 '+sym, '5-10':'5 - 10 '+sym, '10-':'10 '+sym+' ve üzeri' };
+        const labels = { all:'Tüm fiyatlar', '0-1':'0 - 1 '+sym, '1-5':'1 - 5 '+sym, '5-10':'5 - 10 '+sym, '10-':'10 '+sym+' '+t('ve üzeri') };
         [...sel.options].forEach(o=>{ if (labels[o.value]) o.textContent = labels[o.value]; });
       }
       if (!invMerged){
@@ -147,6 +255,11 @@
       const list = (viewRows && viewRows.length) ? viewRows : (invMerged || []);
       return [...new Set(list.filter(i=>i.marketable && i.marketHashName).map(i=>i.marketHashName))];
     }
+    (function baglaAvgBtn(){
+      const b = document.getElementById('envFetchAvg');
+      if (b) b.onclick = fetchAvgForView;
+    })();
+
     function paintFetchBtn(){
       const b = document.getElementById('envFetchPrices');
       if (!b) return;
@@ -182,15 +295,29 @@
       if (!res || !res.queued){ priceFetching = false; }
       renderEnv(); paintFetchBtn();
     }
-    // Sayfaya ilk giriş: kullanıcıya sor.
+    // Sayfaya ilk giriş: kullanıcıya sor. Ama SADECE onbellekte olmayan oge varsa.
     let priceAsked = false;
     async function askFetchPrices(){
       if (priceAsked) return;
+      const hepsi = hashesForView();
+      const eksik = hepsi.filter(h => !priceMap.has(h));
+      // Onbellek yeterince doluysa hic sorma; kullanici isterse alttaki dugmeyle ceker.
+      if (!eksik.length){
+        paintFetchBtn();
+        return;
+      }
       priceAsked = true;
       const ok = await edgeConfirm({
         tag: 'Pazar Fiyatları',
         title: 'Fiyatlar hemen getirilsin mi?',
-        body: 'Envanterindeki ' + hashesForView().length + ' farklı öğe için Steam pazar fiyatı çekilecek.',
+        body: (function(){
+          const hepsi = hashesForView().length;
+          const eksik = hashesForView().filter(h => !priceMap.has(h)).length;
+          return eksik < hepsi
+            ? (hepsi + ' öğeden ' + (hepsi - eksik) + ' tanesinin fiyatı önbellekten geldi. '
+               + 'Kalan ' + eksik + ' öğe için Steam pazar fiyatı çekilecek.')
+            : ('Envanterindeki ' + hepsi + ' farklı öğe için Steam pazar fiyatı çekilecek.');
+        })(),
         warn: 'Steam pazar isteklerini sınırlıyor. Çok sayıda öğede bu işlem uzun sürer; '
               + 'önce filtre uygulayıp sadece ilgilendiğin öğeleri çekmek daha hızlıdır.',
         confirmText: 'Evet, Getir',
@@ -220,7 +347,7 @@
       const el = document.getElementById('envPriceProg');
       if (el) el.textContent = remaining > 0
         ? (remaining + ' kaldı' + (cooldown ? ' · Steam limiti' : ''))
-        : new Date().toLocaleTimeString('tr-TR');
+        : new Date().toLocaleTimeString(window.i18nLocale());
       if (remaining === 0){
         priceFetching = false;
         if (invMerged) renderEnv();
@@ -322,9 +449,9 @@
         if (i.marketable && v != null) value += v * i.count;
       });
       const set=(id,t)=>{ const e=document.getElementById(id); if(e) e.textContent=t; };
-      set('envStatTotal', total.toLocaleString('tr-TR'));
-      set('envStatSellable', sellable.toLocaleString('tr-TR'));
-      set('envStatTradable', tradable.toLocaleString('tr-TR'));
+      set('envStatTotal', total.toLocaleString(window.i18nLocale()));
+      set('envStatSellable', sellable.toLocaleString(window.i18nLocale()));
+      set('envStatTradable', tradable.toLocaleString(window.i18nLocale()));
       set('envStatValue', fmtTL(value));
     }
 
@@ -337,6 +464,21 @@
 
     const ROW_H = () => (appSettings && appSettings.compactRows) ? 34 : 46;
     const GRID_COLS = '34px 14px 44px minmax(220px,1.6fr) minmax(150px,1.1fr) 92px 116px 116px';
+
+    // G9: "Yarisi gri kalan satirlar" sikayeti. Bu bir hata degil: Ayarlar > Envanter >
+    // Dusuk deger esigi altindaki ogeler soluk gosteriliyor. Hicbir yerde yazmadigi icin
+    // kullanici siralama sanip kafasi karisiyordu. Artik ust barda kucuk bir aciklama var.
+    function esikRozetiCiz(){
+      const el = document.getElementById('envEsikNot');
+      if (!el) return;
+      const esik = lowLimit();
+      const solmus = (viewRows || []).filter(isLowValue).length;
+      if (!esik || !solmus){ el.style.display = 'none'; return; }
+      el.style.display = 'flex';
+      el.title = t('Ayarlar > Envanter > Düşük değer eşiği ile değiştirilir.');
+      el.innerHTML = '<span style="width:6px;height:6px;border-radius:12px;background:#656D80;flex-shrink:0"></span>'
+        + '<span>' + tf('# öğe soluk gösteriliyor (eşik: #)', solmus, fmtTL(esik)) + '</span>';
+    }
 
     function rowHTML(it){
       const st = statusOf(it);
@@ -388,6 +530,8 @@
       if (!invMerged) return;
       renderStats(); arrows();
       viewRows = applyFilters();
+      setTimeout(esikRozetiCiz, 0);   // satirlar cizildikten sonra sayim dogru olsun
+      setTimeout(paintAvgBtn, 0);     // filtre degisince eksik sayisi da degisir
       paintFetchBtn();   // filtre degisince "Fiyatlari Getir" yeniden aktiflesir
       const scroll = document.getElementById('envScroll');
       const rows = document.getElementById('envRows');
@@ -542,7 +686,7 @@
       if (!parcalar.length){ w.style.display = 'none'; return; }
       w.style.display = 'flex';
       w.innerHTML = '<span style="width:6px;height:6px;border-radius:12px;background:#B37E24;flex-shrink:0"></span>'
-                  + '<span>' + esc(parcalar.join(' · ')) + '</span>';
+                  + '<span>' + esc(parcalar.map(t).join(' · ')) + '</span>';
     }
 
     document.querySelectorAll('#bulkStrat button[data-bs]').forEach(b=>b.addEventListener('click', ()=>{
@@ -687,7 +831,7 @@
         } else {
           const kaynak = ip.src === 'lastSale'
             ? ('en son <b style="color:#DCE2FA">' + fmtTL(ip.value) + '</b> fiyatından satılmış'
-               + (ip.ts ? (' (' + new Date(ip.ts).toLocaleDateString('tr-TR') + ')') : ''))
+               + (ip.ts ? (' (' + new Date(ip.ts).toLocaleDateString(window.i18nLocale()) + ')') : ''))
             : ('satış ortalaması <b style="color:#DCE2FA">' + fmtTL(ip.value) + '</b>');
           buyBox = priceQtyBox('Hemen Sat', '#B37E24',
             '<b style="color:#B37E24">Şu an bekleyen alım talimatı yok.</b><br>'
@@ -708,8 +852,8 @@
         const rows = (hist.recent||[]).slice().reverse().slice(0, depth);
         saleBox = priceQtyBox('Gerçekleşen Satışlar', '#C2AAEE',
           'Gerçek piyasa değeri <b style="color:#DCE2FA">'+fmtTL(st.median)+'</b> · '+win+' içinde '
-          + '<b style="color:#DCE2FA">'+(st.volume||0)+'</b> adet satılmış'
-          + (st.min!=null && st.max!=null ? '<br>aralık '+fmtTL(st.min)+' - '+fmtTL(st.max) : ''),
+          + '<b style="color:#DCE2FA">'+(st.volume||0)+'</b> '+t('adet satılmış')
+          + (st.min!=null && st.max!=null ? '<br>'+t('Fiyat aralığı:')+' '+fmtTL(st.min)+' - '+fmtTL(st.max) : ''),
           rows.length ? pqRows(rows, '#C2AAEE') : '', 'Kayıtlı satış yok.');
       }
       const obBoxes = sellBox + buyBox + saleBox;
@@ -718,7 +862,7 @@
           + (it.iconUrl?'<img src="'+esc(it.iconUrl)+'" style="max-width:100%;max-height:100%;object-fit:contain">':'') + '</div>'
         + '<div style="display:flex;flex-direction:column;gap:6px">'
           + '<span style="font-size:16px;font-weight:700;color:#DCE2FA">'+esc(it.name)+'</span>'
-          + '<span style="font-size:12px;color:#8B8F9E">'+esc(it.gameName||'-')+' · '+(TYPE_LABEL[it.type]||'Diğer')+' · ×'+it.count+'</span>'
+          + '<span style="font-size:12px;color:#8B8F9E">'+esc(it.gameName||'-')+' · '+t(TYPE_LABEL[it.type]||'Diğer')+' · ×'+it.count+'</span>'
         + '</div>'
         // Üç kutu: satıştaki ilanlar · hemen sat · gerçekleşen satışlar
         + '<div style="display:flex;flex-direction:column;gap:10px">' + obBoxes + '</div>'
@@ -779,9 +923,18 @@
       if (!plan.length){ alert('Listelenecek geçerli fiyat bulunamadı.'); return; }
       const totalNet = plan.reduce((s,p)=>s+p.cents,0)/100;
       if (!appSettings || appSettings.confirmBeforeSell !== false){
-        const ok = confirm('SATIŞA SUNULACAK - '+plan.length+' adet\n\n'+lines.slice(0,12).join('\n')+(lines.length>12?'\n… ve '+(lines.length-12)+' tane daha':'')
-          + '\n\nEline geçecek toplam: '+fmtTL(totalNet)
-          + '\n\nSteam mobil uygulamandan her listelemeyi ONAYLAMAN gerekecek.\nDevam edilsin mi?');
+        // MADDE 9: yerel confirm() yerine tema uyumlu ve ne olacagini acikca yazan onay.
+        // Satis geri alinamaz bir islem; kullanici neyi ne fiyata sattigini gormeli.
+        const toplamBrut = plan.reduce((t,pl)=>t+pl.cents,0)/100/(1-STEAM_FEE);
+        const ok = await edgeConfirm({
+          tag:t('Pazarda Sat'), danger:true,
+          title: tf('# öğe satışa sunulacak', plan.length),
+          body: lines.slice(0,12).join('\n') + (lines.length>12 ? ('\n… ve '+(lines.length-12)+' tane daha') : '')
+                + '\n\n' + t('Alıcının ödeyeceği toplam:') + ' ' + fmtTL(toplamBrut)
+                + '\n' + t('Steam kesintisi sonrası eline geçecek:') + ' ' + fmtTL(totalNet),
+          warn: t('Satışa sunulan öğe geri alınamaz; ilan iptali Steam üzerinden ayrıca yapılır. Hesabında mobil doğrulayıcı açıksa her listelemeyi Steam uygulamasından onaylaman gerekir.'),
+          confirmText:t('Satışa Sun'), cancelText:t('Vazgeç'),
+        });
         if (!ok) return;
       }
       // "Satışta iki adımlı onay" - toplu işlemlerde ayrıca yazarak doğrulama ister

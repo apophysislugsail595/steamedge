@@ -67,25 +67,25 @@
         <div style="display:flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 12px;border-radius:12px;background:#0D1118;border:1px solid #2B3345">
           <div style="position:relative;display:flex;align-items:center;justify-content:center;width:34px;height:100%">
             <input id="kartH" value="00" maxlength="3" style="width:34px;height:22px;background:transparent;border:none;outline:none;text-align:center;font-family:Geist Mono,monospace;font-size:16px;font-weight:700;color:#DCE2FA">
-            <span style="position:absolute;bottom:3px;left:0;right:0;text-align:center;font-size:7px;font-weight:600;letter-spacing:0.1em;color:#656D80">HRS</span>
+            <span style="position:absolute;bottom:3px;left:0;right:0;text-align:center;font-size:7px;font-weight:600;letter-spacing:0.1em;color:#656D80">HR</span>
           </div>
           <span style="font-family:Geist Mono,monospace;font-size:16px;color:#C2AAEE">:</span>
           <div style="position:relative;display:flex;align-items:center;justify-content:center;width:34px;height:100%">
             <input id="kartM" value="15" maxlength="2" style="width:34px;height:22px;background:transparent;border:none;outline:none;text-align:center;font-family:Geist Mono,monospace;font-size:16px;font-weight:700;color:#DCE2FA">
-            <span style="position:absolute;bottom:3px;left:0;right:0;text-align:center;font-size:7px;font-weight:600;letter-spacing:0.1em;color:#656D80">DK</span>
+            <span style="position:absolute;bottom:3px;left:0;right:0;text-align:center;font-size:7px;font-weight:600;letter-spacing:0.1em;color:#656D80">MIN</span>
           </div>
           <span style="font-family:Geist Mono,monospace;font-size:16px;color:#C2AAEE">:</span>
           <div style="position:relative;display:flex;align-items:center;justify-content:center;width:34px;height:100%">
             <input id="kartS" value="00" maxlength="2" style="width:34px;height:22px;background:transparent;border:none;outline:none;text-align:center;font-family:Geist Mono,monospace;font-size:16px;font-weight:700;color:#DCE2FA">
-            <span style="position:absolute;bottom:3px;left:0;right:0;text-align:center;font-size:7px;font-weight:600;letter-spacing:0.1em;color:#656D80">SN</span>
+            <span style="position:absolute;bottom:3px;left:0;right:0;text-align:center;font-size:7px;font-weight:600;letter-spacing:0.1em;color:#656D80">SEC</span>
           </div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap" id="kartPresets">
-          <button data-min="30" style="height:26px;padding:0 12px;border-radius:999px;border:1px solid transparent;background:transparent;color:#8B8F9E;font-family:Geist Mono,monospace;font-size:11px;font-weight:700;cursor:pointer">30M</button>
-          <button data-min="60" style="height:26px;padding:0 12px;border-radius:999px;border:1px solid transparent;background:transparent;color:#8B8F9E;font-family:Geist Mono,monospace;font-size:11px;font-weight:700;cursor:pointer">1H</button>
-          <button data-min="120" style="height:26px;padding:0 12px;border-radius:999px;border:1px solid transparent;background:transparent;color:#8B8F9E;font-family:Geist Mono,monospace;font-size:11px;font-weight:700;cursor:pointer">2H</button>
-          <button data-min="240" style="height:26px;padding:0 12px;border-radius:999px;border:1px solid transparent;background:transparent;color:#8B8F9E;font-family:Geist Mono,monospace;font-size:11px;font-weight:700;cursor:pointer">4H</button>
-          <button data-min="480" style="height:26px;padding:0 12px;border-radius:999px;border:1px solid transparent;background:transparent;color:#8B8F9E;font-family:Geist Mono,monospace;font-size:11px;font-weight:700;cursor:pointer">8H</button>
+          <button data-min="30" style="height:26px;padding:0 12px;border-radius:999px;border:1px solid transparent;background:transparent;color:#8B8F9E;font-family:Geist Mono,monospace;font-size:11px;font-weight:700;cursor:pointer">30 min</button>
+          <button data-min="60" style="height:26px;padding:0 12px;border-radius:999px;border:1px solid transparent;background:transparent;color:#8B8F9E;font-family:Geist Mono,monospace;font-size:11px;font-weight:700;cursor:pointer">1 hr</button>
+          <button data-min="120" style="height:26px;padding:0 12px;border-radius:999px;border:1px solid transparent;background:transparent;color:#8B8F9E;font-family:Geist Mono,monospace;font-size:11px;font-weight:700;cursor:pointer">2 hr</button>
+          <button data-min="240" style="height:26px;padding:0 12px;border-radius:999px;border:1px solid transparent;background:transparent;color:#8B8F9E;font-family:Geist Mono,monospace;font-size:11px;font-weight:700;cursor:pointer">4 hr</button>
+          <button data-min="480" style="height:26px;padding:0 12px;border-radius:999px;border:1px solid transparent;background:transparent;color:#8B8F9E;font-family:Geist Mono,monospace;font-size:11px;font-weight:700;cursor:pointer">8 hr</button>
         </div>
       </div>
 
@@ -104,7 +104,7 @@
           <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 0;border-bottom:1px solid #101621">
             <div style="display:flex;flex-direction:column;gap:3px">
               <span style="font-size:12px;font-weight:600;color:#DCE2FA">Arka Planda Topla</span>
-              <span style="font-size:11px;color:#8B8F9E">En az işlemci ve bellek kullanımı</span>
+              <span style="font-size:11px;color:#8B8F9E">Pencere gizliyken listeler bellekten düşer, geri gelince yeniden çizilir</span>
             </div>
             <span class="e-toggle" data-set="farmSilent"><span class="e-knob"></span></span>
           </div>
