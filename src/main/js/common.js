@@ -3,34 +3,79 @@
     document.getElementById('max').onclick = () => api && api.win.maximize();
     document.getElementById('close').onclick = () => api && api.win.close();
 
-    const designed = { genel: document.getElementById('tab-genel'), kart: document.getElementById('tab-kart'), env: document.getElementById('tab-env'), saat: document.getElementById('tab-saat'), basarim: document.getElementById('tab-basarim'), ayarlar: document.getElementById('tab-ayarlar') };
+    const designed = { genel: document.getElementById('tab-genel'), kart: document.getElementById('tab-kart'), env: document.getElementById('tab-env'), saat: document.getElementById('tab-saat'), gercekci: document.getElementById('tab-gercekci'), basarim: document.getElementById('tab-basarim'), sohbet: document.getElementById('tab-sohbet'), ayarlar: document.getElementById('tab-ayarlar') };
     const empty = document.getElementById('tab-empty');
     const emptyName = document.getElementById('emptyName');
+    // Sekme acma. Eskiden govde dogrudan nav baglantisinin click dinleyicisinin icindeydi;
+    // ust bardaki Sohbet dugmesinin kenar cubugunda karsiligi olmadigi icin ayri bir
+    // fonksiyona cikarildi. Nav baglantilari da bunu cagiriyor, tek yol kaldi.
+    async function sekmeAc(tab, kaynakBaglanti) {
+      // Ayarlar sekmesinden çıkılıyorsa kaydedilmemiş değişiklik uyarısı (ayarlar.js)
+      const leavingSettings = !designed.ayarlar.classList.contains('hidden');
+      if (leavingSettings && typeof confirmLeaveSettings === 'function') {
+        const ok = await confirmLeaveSettings();
+        if (!ok) return;
+      }
+      if (tab === 'cikis') { window.imu.logout(); return; }
+      document.querySelectorAll('.nav a').forEach(x => x.classList.remove('active'));
+      // Sohbet'in kenar cubugunda baglantisi yok; o zaman hicbiri isaretli kalmaz.
+      if (kaynakBaglanti) kaynakBaglanti.classList.add('active');
+      setRailTop(tab);
+      Object.values(designed).forEach(s => s.classList.add('hidden'));
+      empty.classList.add('hidden');
+      if (designed[tab]) designed[tab].classList.remove('hidden');
+      else {
+        empty.classList.remove('hidden');
+        emptyName.textContent = kaynakBaglanti ? kaynakBaglanti.textContent.trim() : tab;
+      }
+      agirListeleriBosalt(tab);
+      if (tab === 'genel') loadGenel();
+      if (tab === 'kart') loadKart();
+      if (tab === 'saat') loadSaat();
+      if (tab === 'env') loadEnv();
+      if (tab === 'gercekci') loadGercekci();
+      if (tab === 'basarim') loadBasarim();
+      if (tab === 'sohbet') loadSohbet();
+      if (tab === 'ayarlar') loadAyarlar();
+      agirListeyiGeriCiz(tab);
+    }
     document.querySelectorAll('.nav a[data-tab]').forEach(a => {
-      a.addEventListener('click', async () => {
-        // Ayarlar sekmesinden çıkılıyorsa kaydedilmemiş değişiklik uyarısı (ayarlar.js)
-        const leavingSettings = !designed.ayarlar.classList.contains('hidden');
-        if (leavingSettings && typeof confirmLeaveSettings === 'function') {
-          const ok = await confirmLeaveSettings();
-          if (!ok) return;
-        }
-        document.querySelectorAll('.nav a').forEach(x => x.classList.remove('active'));
-        a.classList.add('active');
-        const tab = a.getAttribute('data-tab');
-        if (tab === 'cikis') { window.imu.logout(); return; }
-        setRailTop(tab);
-        Object.values(designed).forEach(s => s.classList.add('hidden'));
-        empty.classList.add('hidden');
-        if (designed[tab]) designed[tab].classList.remove('hidden');
-        else { empty.classList.remove('hidden'); emptyName.textContent = a.textContent.trim(); }
-        if (tab === 'genel') loadGenel();
-        if (tab === 'kart') loadKart();
-        if (tab === 'saat') loadSaat();
-        if (tab === 'env') loadEnv();
-        if (tab === 'basarim') loadBasarim();
-        if (tab === 'ayarlar') loadAyarlar();
-      });
+      a.addEventListener('click', () => sekmeAc(a.getAttribute('data-tab'), a));
     });
+
+    // ---- GÖRÜNMEYEN SEKMELERİN LİSTELERİNİ BELLEKTE TUTMA ----
+    // Kütüphanesi büyük hesaplarda bu listeler binlerce satır demek: 400 oyunluk bir kuyruk
+    // tek başına ~9.600 DOM düğümü. Sekme gizlendiğinde bunlar ekranda değil ama tarayıcı
+    // hepsini bellekte tutmaya devam ediyordu.
+    //
+    // Çözüm: gizlenen sekmenin liste gövdesi boşaltılır, sekmeye dönüldüğünde yeniden çizilir.
+    // VERİ SİLİNMEZ - listeler zaten JS dizilerinden çiziliyor, silinen sadece DOM. Seçimler,
+    // sıralama ve filtreler de JS tarafında durduğu için geri dönüşte hiçbir şey kaybolmaz.
+    // Steam'e tek bir istek daha gitmez.
+    const AGIR_LISTELER = {
+      kart:    { kap: 'kartQueue',    ciz: () => (typeof renderKart === 'function' && typeof kartLoaded !== 'undefined' && kartLoaded) && renderKart() },
+      env:     { kap: 'envRows',      ciz: () => (typeof renderEnv === 'function' && typeof envLoaded !== 'undefined' && envLoaded) && renderEnv() },
+      saat:    { kap: 'saatListBody', ciz: () => (typeof renderSaatList === 'function' && typeof saatLoaded !== 'undefined' && saatLoaded) && renderSaatList() },
+      basarim: { kap: 'acBody',       ciz: () => (typeof renderAchievements === 'function' && typeof acData !== 'undefined' && acData) && renderAchievements() },
+    };
+    const askidaSekmeler = new Set();
+
+    function agirListeleriBosalt(acilanTab){
+      Object.keys(AGIR_LISTELER).forEach(t => {
+        if (t === acilanTab || askidaSekmeler.has(t)) return;
+        const kap = document.getElementById(AGIR_LISTELER[t].kap);
+        // Hiç doldurulmamış listeyi askıya almanın anlamı yok; ayrıca "yükleniyor" gibi
+        // tek satırlık durum metinlerini silip kullanıcıyı boş ekranla baş başa bırakmayalım.
+        if (!kap || kap.children.length < 2) return;
+        kap.innerHTML = '';
+        askidaSekmeler.add(t);
+      });
+    }
+    function agirListeyiGeriCiz(tab){
+      if (!askidaSekmeler.has(tab)) return;
+      askidaSekmeler.delete(tab);
+      try { AGIR_LISTELER[tab].ciz(); } catch (_) { /* sayfa henüz yüklenmemiş - kendi load'u çizecek */ }
+    }
 
     // ---- ortak yardımcılar (tüm sayfalar kullanır) ----
     const E = window.imu.engine;
@@ -54,7 +99,10 @@
         + ' onerror="if(!this.dataset.fb){this.dataset.fb=1;this.src=\'' + gameImg(appid, 'capsule') + '\';}'
         + 'else{this.style.display=\'none\';}">';
     }
-    function esc(s){ return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+    // Tirnaklar da kacirilir: bu fonksiyonun cikisi cogu yerde oznitelik degeri olarak
+    // kullaniliyor (src="'+esc(x)+'"), tirnak kacmayinca deger oznitelikten cikabiliyordu.
+    const ESC_HARF = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    function esc(s){ return (s||'').replace(/[&<>"']/g, c => ESC_HARF[c]); }
 
     // ================= TEMALI ONAY MODALI =================
     // Yerel confirm() kutusu Windows'un gri penceresini açıyordu (tema dışı). Bu, aynı işi
@@ -63,6 +111,7 @@
     //   ayarlara `dontAsk_<key>: true` yazılır ve sonraki çağrılar SORMADAN true döner.
     //   Kullanıcı bunu Ayarlar > (ilgili bölüm) üzerinden geri açabilir.
     function edgeConfirm(opts){
+      const uiText = (value) => typeof window.translateUiText === 'function' ? window.translateUiText(value) : value;
       const o = opts || {};
       const key = o.dontAskKey ? ('dontAsk_' + o.dontAskKey) : null;
       // Daha önce "bir daha sorma" denmişse hiç gösterme
@@ -75,19 +124,19 @@
         back.innerHTML =
           '<div class="e-modal" role="dialog" aria-modal="true">'
           + '<div class="e-modal-hd"><span class="dot" style="background:'+accent+'"></span>'
-          + '<span class="ttl">'+esc(o.tag || (o.danger ? 'Dikkat' : 'Onay'))+'</span></div>'
+          + '<span class="ttl">'+esc(uiText(o.tag || (o.danger ? 'Dikkat' : 'Onay')))+'</span></div>'
           + '<div class="e-modal-body">'
-            + '<span class="h">'+esc(o.title || 'Emin misiniz?')+'</span>'
-            + (o.body ? '<span class="p">'+esc(o.body)+'</span>' : '')
-            + (o.warn ? '<span class="warn">'+esc(o.warn)+'</span>' : '')
+            + '<span class="h">'+esc(uiText(o.title || 'Emin misiniz?'))+'</span>'
+            + (o.body ? '<span class="p">'+esc(uiText(o.body))+'</span>' : '')
+            + (o.warn ? '<span class="warn">'+esc(uiText(o.warn))+'</span>' : '')
           + '</div>'
           + (key ? '<div class="e-modal-ask" data-ask><span class="box">'
               + '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#DCE2FA" stroke-width="3.4"><path d="M5 13l4 4L19 7"></path></svg>'
               + '</span><span>Bir daha sorma</span></div>' : '')
           + '<div class="e-modal-ft">'
-            + '<button class="cancel" data-no>'+esc(o.cancelText || 'Vazgeç')+'</button>'
-            + (o.altText ? '<button class="alt" data-alt>'+esc(o.altText)+'</button>' : '')
-            + '<button class="ok'+(o.danger?' danger':'')+'" data-yes>'+esc(o.confirmText || 'Devam Et')+'</button>'
+            + '<button class="cancel" data-no>'+esc(uiText(o.cancelText || 'Vazgeç'))+'</button>'
+            + (o.altText ? '<button class="alt" data-alt>'+esc(uiText(o.altText))+'</button>' : '')
+            + '<button class="ok'+(o.danger?' danger':'')+'" data-yes>'+esc(uiText(o.confirmText || 'Devam Et'))+'</button>'
           + '</div></div>';
         document.body.appendChild(back);
         requestAnimationFrame(()=>back.classList.add('show'));
@@ -171,9 +220,9 @@
     // "Saat biçimi" - 24 saat / 12 saat (ÖÖ-ÖS)
     function fmtClock(d){
       const use12 = (typeof appSettings==='object' && appSettings && String(appSettings.timeFormat)==='12');
-      return new Date(d).toLocaleTimeString('tr-TR', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12: use12 });
+      return new Date(d).toLocaleTimeString(window.i18nLocale(), { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12: use12 });
     }
-    function fmtDateShort(d){ return new Date(d).toLocaleDateString('tr-TR'); }
+    function fmtDateShort(d){ return new Date(d).toLocaleDateString(window.i18nLocale()); }
 
     // "Arayüz yoğunluğu" - sıkışık modda satır yükseklikleri ve iç boşluklar daralır
     function applyDensity(){
@@ -297,12 +346,49 @@
     // "Arka Planda Topla" (farmSilent) - pencere görünmezken saniyelik arayüz yenilemeleri
     // atlanır; kart toplama/saat yükseltme motoru main tarafında olduğu için etkilenmez.
     // Sayfa JS'lerindeki 1sn'lik render döngüleri bu kapıdan geçer.
-    function uiTickAllowed(){
-      if (typeof appSettings === 'object' && appSettings && appSettings.farmSilent){
-        if (document.hidden) return false;
-      }
-      return true;
+    // G10: pencere gizli/simge durumundayken saniyelik yenilemeler HER ZAMAN atlanır, ayara
+    // bakılmaz. Görünmeyen bir arayüzü saniyede bir yeniden çizmenin kimseye faydası yok;
+    // motor ana süreçte çalıştığı için kart toplama, saat yükseltme ve başarım işleri
+    // etkilenmez - sadece çizim durur. Pencere geri geldiğinde sayfalar bir kez tazelenir,
+    // böylece kullanıcı asla bayat sayaç görmez.
+    // HAFIF MOD.
+    // Chromium yalnizca pencere GIZLI ya da ORTULU oldugunda cizimi kisar. Pencere
+    // ekranda durup odakta degilken hicbir sey kismiyor: saniyelik yeniden cizimler ve
+    // sonsuz CSS animasyonlari her karede kompozisyon yaptiriyor. Tam ekran bir oyun
+    // (olculdu: Dota 2, Vulkan) bu yuzden "independent flip" sunumunu kaybedip kompozit
+    // moda dusuyor ve kare hizi dusuyor. SteamEdge'in GPU kullanimi %0 olsa bile oluyor,
+    // cunku maliyet bizim degil masaustu kompozitorunun.
+    //
+    // Cozum: odak kaybinda saniyelik cizimleri durdur ve animasyonlari duraklat.
+    let pencereOdakta = document.hasFocus();
+    function hafifModAcik(){
+      return typeof appSettings !== 'object' || !appSettings || appSettings.hafifMod !== false;
     }
+    function durgunlukBoya(){
+      const durgun = hafifModAcik() && !pencereOdakta;
+      document.documentElement.classList.toggle('e-durgun', durgun);
+    }
+    window.addEventListener('focus', () => { pencereOdakta = true; durgunlukBoya(); });
+    window.addEventListener('blur',  () => { pencereOdakta = false; durgunlukBoya(); });
+    function uiTickAllowed(){
+      if (document.hidden) return false;
+      return !(hafifModAcik() && !pencereOdakta);
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden){
+        // "Arka Planda Topla" açıkken pencere gizlenince AÇIK sekmenin listesi de bellekten
+        // düşer. Ayarın vaadi buydu ("en az işlemci ve bellek kullanımı"); önceden yalnızca
+        // saniyelik çizimleri atlıyordu, bellek tarafında bir şey yapmıyordu.
+        if (typeof appSettings === 'object' && appSettings && appSettings.farmSilent) agirListeleriBosalt(null);
+        return;
+      }
+      // Geri gelindi: askıya alınmış liste varsa çiz, sayaçlar taze değere gelsin.
+      Object.keys(AGIR_LISTELER).forEach(t => {
+        if (designed[t] && !designed[t].classList.contains('hidden')) agirListeyiGeriCiz(t);
+      });
+      try { if (typeof renderActiveBox === 'function' && !designed.saat.classList.contains('hidden')) renderActiveBox(); } catch (_) {}
+      try { if (typeof renderGenelStats === 'function' && !designed.genel.classList.contains('hidden')) renderGenelStats(); } catch (_) {}
+    });
 
     // "Oturum zaman aşımı" - gerçek kullanıcı etkileşimini main'e bildir (sayacı sıfırlar)
     (function wireActivity(){
@@ -328,12 +414,43 @@
         + '</div>';
     }
 
-    // ---- Steam profil (avatar/isim/seviye) - bir kez çek, her yerde göster ----
+    // ---- Steam profil (avatar/isim/seviye) ----
+    // Profil ancak Steam oturumu kurulduktan SONRA çekilebiliyor ve oturum açmak saniyeler
+    // sürüyor. O süre boyunca sağ üstte ve Ayarlar'daki hesap kartında tire duruyordu.
+    // Artık son bilinen profil hesabın kendi dosyasında saklanıyor (main.js > engine:profile)
+    // ve ayarlarla birlikte anında geliyor: ekran ilk karede dolu açılıyor, bağlantı kurulunca
+    // taze veri üstüne yazıyor. Özel adres ayrı istekle, en son gelir.
     let imuProfile = null;
+    let imuProfilTaze = false;      // önbellekten mi geldi, Steam'den mi
+
+    function onbelleklenmisProfil(){
+      const p = (typeof appSettings === 'object' && appSettings && appSettings.profil) || null;
+      if (!p || (!p.persona && !p.avatar)) return false;
+      imuProfile = { ...p };
+      applyProfile();
+      return true;
+    }
+
     async function loadProfile(){
-      if (imuProfile) { applyProfile(); return; }
-      const r = await E.profile().catch(()=>null);
-      if (r && r.ok && r.profile){ imuProfile = r.profile; applyProfile(); }
+      // Elde bir şey varsa hemen göster; taze değilse arkadan tazelemeye devam et.
+      if (imuProfile) applyProfile(); else onbelleklenmisProfil();
+      if (!imuProfilTaze){
+        const r = await E.profile().catch(()=>null);
+        if (r && r.ok && r.profile){
+          imuProfile = { ...(imuProfile || {}), ...r.profile };
+          imuProfilTaze = true;
+          applyProfile();
+        }
+      }
+      // Özel adres profil sayfasından okunuyor; ismi ve avatarı bekletmesin diye ayrı istek.
+      if (imuProfile && !imuProfile.vanity){
+        E.vanity().then(v=>{
+          if (v && v.ok && v.vanity){
+            imuProfile.vanity = v.vanity;
+            if (typeof kimlikleriBoya === 'function') kimlikleriBoya();
+          }
+        }).catch(()=>{});
+      }
     }
     function applyProfile(){
       if (!imuProfile) return;
@@ -348,8 +465,9 @@
         sAv.innerHTML = av ? '<img src="' + esc(av) + '" onerror="this.parentNode.textContent=\'' + initials + '\'">' : initials;
       }
       const setP = document.getElementById('setPersona'); if (setP) setP.textContent = nm;
-      const hero = document.getElementById('genelHello'); if (hero) hero.textContent = 'Hoş geldin, ' + nm + '!';
       const setLevelRow = document.getElementById('setLevel'); if (setLevelRow) setLevelRow.textContent = imuProfile.level!=null ? imuProfile.level : '-';
+      // Kimlik satırları profilden gelen özel adresi de gösteriyor; hesap değişince tazelensin.
+      if (typeof kimlikleriBoya === 'function') kimlikleriBoya();
     }
 
     // ---- kalıcı istatistikler (main.js stats.json) ----
@@ -363,7 +481,7 @@
       set('lifeCards', (lifeStats.cardsDropped||0));
       set('lifeSold', (lifeStats.cardsSold||0));
       set('lifeBoost', fmtHrs(lifeStats.boostRuntimeMs||0));
-      set('lifeSince', 'Kayıt başlangıcı: ' + new Date(lifeStats.since||Date.now()).toLocaleDateString('tr-TR'));
+      set('lifeSince', t('Kayıt başlangıcı:') + ' ' + new Date(lifeStats.since||Date.now()).toLocaleDateString(window.i18nLocale()));
     }
     async function addLifeStats(patch){ lifeStats = await window.imu.stats.add(patch).catch(()=>lifeStats); renderLifeStats(); }
     // 16:9 - Kütüphane Logosu (logo.png). contain: saydam logo kırpılmadan sığar.
@@ -375,7 +493,7 @@
     const SIDE_COLLAPSE_KEY = 'imu_side_collapsed';
     // Rail sekmesi aktif nav öğesinin hizasında durur: top = 17 + 44*index
     // (nav öğesi 40px + 4px gap = 44px adım). Ayarlar sidebar'da olmadığı için index 5.
-    const RAIL_ORDER = ['genel', 'kart', 'env', 'saat', 'basarim', 'ayarlar'];
+    const RAIL_ORDER = ['genel', 'kart', 'env', 'saat', 'gercekci', 'basarim', 'ayarlar'];
     function setRailTop(tab) {
       const btn = document.getElementById('sideCollapseBtn');
       const i = RAIL_ORDER.indexOf(tab);
@@ -398,6 +516,187 @@
     document.getElementById('tbSettings').onclick = () => {
       document.querySelectorAll('.nav a').forEach(x=>x.classList.remove('active'));
       openAyarlar();
+    };
+
+    // ---- ust cubuk: Sohbet ----
+    // Kenar cubugunda karsiligi yok, dogrudan sekmeyi aciyor. Rozet okunmamis mesaj
+    // sayisini tutar; sohbet ekrani acikken sifirlanir.
+    let chBekleyen = 0;
+    function chRozetBoya(){
+      const r = document.getElementById('tbChatBadge');
+      if (!r) return;
+      r.style.display = chBekleyen ? '' : 'none';
+    }
+    document.getElementById('tbChat').onclick = () => {
+      chBekleyen = 0; chRozetBoya();
+      sekmeAc('sohbet');
+    };
+
+    // ---- üst çubuk: sürüm rozeti ve güncelleme uyarısı ----
+    // Sürüm package.json'dan okunur (preload > imu.surum); hiçbir yerde elle yazılmaz.
+    const APP_SURUM = (window.imu && window.imu.surum) || '';
+    (function paintVersion(){
+      const e = document.getElementById('tbVersion');
+      if (e) e.textContent = APP_SURUM ? ('v' + APP_SURUM) : 'v-';
+    })();
+
+    // ---- GÜNCELLEME ----
+    // Uygulama açılışta BİR KEZ bakar. Yeni sürüm varsa pencere açılır; sürüm güncelse
+    // hiçbir şey gösterilmez - kullanıcıyı "her şey yolunda" demek için rahatsız etmenin
+    // anlamı yok. Üst çubuktaki düğme aynı kontrolü istendiği an tekrar yapar; orada sonuç
+    // her durumda söylenir, çünkü düğmeye basan cevap bekler.
+    // İndirme, kurulum veya kendini güncelleme YOK: yalnızca sürüm numarası okunur.
+    let sonGuncellemeDurumu = null;
+    let guncellemePenceresiAcik = false;
+
+    async function guncellemePenceresi(d){
+      if (guncellemePenceresiAcik) return;
+      guncellemePenceresiAcik = true;
+      try {
+        const tarih = d.yayinTs ? new Date(d.yayinTs).toLocaleDateString(window.i18nLocale()) : '';
+        const ac = await edgeConfirm({
+          tag: 'Güncelleme',
+          title: t('Yeni sürüm yayımlandı:') + ' v' + d.son,
+          body: t('Kurulu sürüm') + ' v' + d.kurulu + (tarih ? ('  ·  ' + t('yayımlanma tarihi') + ' ' + tarih) : '')
+                + '\n' + t('Değişiklikleri yayın sayfasında okuyabilirsin.'),
+          warn: 'İndirmeyi uygulama yapmaz. Yayın sayfasından kendin indirir, arşivi BOŞ ve YENİ bir klasöre çıkarır, eski klasördeki settings klasörünü yanına kopyalarsın.',
+          confirmText: 'Yayın Sayfasını Aç',
+          cancelText: 'Şimdi Değil',
+        });
+        if (ac) window.imu.openExternal(d.url);
+      } finally {
+        guncellemePenceresiAcik = false;
+      }
+    }
+
+    function guncellemeDurumu(d, elleBakildi){
+      sonGuncellemeDurumu = d || null;
+      const rozet = document.getElementById('tbUpdateBadge');
+      const yeniVar = !!(d && d.ok && d.guncelMi === false);
+      // Düğmenin üstündeki nokta: yeni sürüm varken yanar, güncelken söner.
+      if (rozet) rozet.style.display = yeniVar ? 'block' : 'none';
+      const btn = document.getElementById('tbUpdate');
+      if (btn) btn.title = yeniVar ? (t('Yeni sürüm var:') + ' v' + d.son) : 'Güncellemeleri denetle';
+      if (yeniVar){ guncellemePenceresi(d); return; }
+      // Güncel ya da bakılamadı: yalnızca kullanıcı elle sorduysa cevap ver.
+      if (!elleBakildi || !d || typeof toast !== 'function') return;
+      if (d.ok) toast('Güncelleme').done(tf('En güncel sürümü kullanıyorsun (v#).', d.kurulu));
+      else toast('Güncelleme').fail(t(d.hata || 'Sürüm bilgisi alınamadı.') + ' ' + t('Kurulu sürümün çalışmaya devam eder.'));
+    }
+
+    if (window.imu && window.imu.guncelleme){
+      // Açılıştaki tek kontrolün sonucu buradan gelir.
+      window.imu.guncelleme.onDurum((d) => guncellemeDurumu(d, false));
+      const ub = document.getElementById('tbUpdate');
+      if (ub) ub.onclick = async ()=>{
+        ub.disabled = true;
+        const d = await window.imu.guncelleme.kontrol().catch(e=>({ ok:false, hata:(e&&e.message)||'Denetim başarısız.' }));
+        ub.disabled = false;
+        guncellemeDurumu(d, true);
+      };
+    }
+
+    // ---- HESAP KİMLİĞİ (sağ üstteki hesap menüsü) ----
+    // Steam'in yedi biçimi de TEK sayıdan türer: SteamID64. Ağa hiçbir şey sorulmaz.
+    //   hesap numarası = SteamID64 - 76561197960265728   (evren 1, "individual" hesap tabanı)
+    //   klasik         = STEAM_1:<numaranın son biti>:<numaranın yarısı>
+    //   SteamID3       = [U:1:<hesap numarası>]
+    // Tam sayılar 53 biti aştığı için BigInt kullanılır; Number ile son haneler bozulur.
+    const STEAM64_TABAN = 76561197960265728n;
+    let kimlikler = null;
+
+    function kimlikBicimleri(steamID64, vanity){
+      const ham = String(steamID64 || '').trim();
+      if (!/^\d{17}$/.test(ham)) return null;
+      let sid;
+      try { sid = BigInt(ham); } catch (_) { return null; }
+      if (sid < STEAM64_TABAN) return null;
+      const hesap = sid - STEAM64_TABAN;
+      return {
+        idSteam64: ham,
+        idKlasik : 'STEAM_1:' + (hesap % 2n) + ':' + (hesap / 2n),
+        idSteam3 : '[U:1:' + hesap + ']',
+        idHesap  : String(hesap),
+        idHex    : '0x' + sid.toString(16).toUpperCase().padStart(16, '0'),
+        idProfil : 'https://steamcommunity.com/profiles/' + ham,
+        idOzel   : vanity ? ('https://steamcommunity.com/id/' + vanity) : null,
+      };
+    }
+
+    function kimlikleriBoya(){
+      const sid = (imuProfile && imuProfile.steamID)
+        || (typeof appSettings === 'object' && appSettings && appSettings.steamID) || null;
+      kimlikler = kimlikBicimleri(sid, imuProfile && imuProfile.vanity);
+      ['idSteam64','idKlasik','idSteam3','idHesap','idHex','idProfil','idOzel'].forEach(id=>{
+        const e = document.getElementById(id);
+        if (!e) return;
+        const v = kimlikler ? kimlikler[id] : null;
+        // Menü 268 px: tam adres satıra sığmayıp üç noktayla kesiliyordu. Adreslerde
+        // "https://steamcommunity.com" kısmı zaten her satırda aynı, o yüzden yalnızca
+        // yol gösteriliyor. KOPYALANAN ve AÇILAN değer tam adres olarak kalır.
+        // Adres AYRISTIRILARAK karsilastirilir, basi kesilerek degil: "steamcommunity.com"
+        // ile BASLAYAN her dizge Steam degildir (steamcommunity.com.baskasite.tr gibi).
+        // Burada deger zaten kendi urettigimiz adres, ama karsilastirmanin dogrusu bu ve
+        // kod taramasi da hakli olarak isaret ediyordu.
+        let gorunen = v;
+        if (v) {
+          try {
+            const u = new URL(v);
+            if (u.origin === 'https://steamcommunity.com') gorunen = u.pathname + u.search + u.hash;
+          } catch (_) { /* adres degilse oldugu gibi gosterilir */ }
+        }
+        // Boş tire "bozuk" gibi görünüyor; değeri olmayan satır sebebini yazsın.
+        e.textContent = gorunen || (kimlikler ? 'tanımlı değil' : 'hesap bağlı değil');
+        e.classList.toggle('bos', !v);
+        if (v) e.parentNode.title = v;      // tam değer üzerine gelince görünür
+      });
+      document.querySelectorAll('#kimlikBox [data-kopya]').forEach(b=>{
+        const v = kimlikler && kimlikler[b.getAttribute('data-kopya')];
+        b.disabled = !v;
+        b.style.opacity = v ? '1' : '0.45';
+      });
+      const hepsi = document.getElementById('idCopyAll');
+      const profil = document.getElementById('idOpenProfile');
+      if (hepsi) hepsi.disabled = !kimlikler;
+      if (profil) profil.disabled = !kimlikler;
+    }
+
+    function kimlikKopyala(metin, etiket){
+      navigator.clipboard.writeText(metin).then(()=>{
+        if (typeof toast === 'function'){
+          const mesaj = etiket === 'Tüm kimlik biçimleri'
+            ? 'Tüm kimlik biçimleri panoya kopyalandı.'
+            : 'Kimlik panoya kopyalandı.';
+          toast('Kopyalandı').done(t(mesaj));
+        }
+      }).catch(()=>{});
+    }
+
+    document.querySelectorAll('#kimlikBox [data-kopya]').forEach(b=>{
+      b.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const v = kimlikler && kimlikler[b.getAttribute('data-kopya')];
+        if (v) kimlikKopyala(v, 'Kimlik');
+      });
+    });
+    const idCopyAllBtn = document.getElementById('idCopyAll');
+    if (idCopyAllBtn) idCopyAllBtn.onclick = (e)=>{
+      e.stopPropagation();
+      if (!kimlikler) return;
+      kimlikKopyala([
+        'SteamID64'.padEnd(15) + ': ' + kimlikler.idSteam64,
+        'SteamID'.padEnd(15) + ': ' + kimlikler.idKlasik,
+        'SteamID3'.padEnd(15) + ': ' + kimlikler.idSteam3,
+        t('Hesap numarası').padEnd(15) + ': ' + kimlikler.idHesap,
+        'Hex'.padEnd(15) + ': ' + kimlikler.idHex,
+        t('Profil adresi').padEnd(15) + ': ' + kimlikler.idProfil,
+        t('Özel adres').padEnd(15) + ': ' + (kimlikler.idOzel || t('tanımlı değil')),
+      ].join('\n'), 'Tüm kimlik biçimleri');
+    };
+    const idOpenProfileBtn = document.getElementById('idOpenProfile');
+    if (idOpenProfileBtn) idOpenProfileBtn.onclick = (e)=>{
+      e.stopPropagation();
+      if (kimlikler) window.imu.openExternal(kimlikler.idOzel || kimlikler.idProfil);
     };
 
     // ---- üst çubuk: Bildirimler + Profil/Hesap akordiyonu (referanslar önce, olay bağlama sonra) ----
@@ -433,7 +732,7 @@
       const feed = activityFeed || [];
       if (!feed.length){ box.innerHTML = '<div style="padding:14px;color:var(--muted2);font-size:12px;text-align:center">Henüz bildirim yok.</div>'; return; }
       box.innerHTML = feed.slice(0,8).map(f=>{
-        const t = new Date(f.ts).toLocaleTimeString('tr-TR');
+        const t = new Date(f.ts).toLocaleTimeString(window.i18nLocale());
         return '<div class="notif-item"><div class="a">'+esc(f.title)+'</div><div class="b">'+esc(f.text)+'</div><div class="t">'+t+'</div></div>';
       }).join('');
     }
@@ -464,19 +763,84 @@
         x.addEventListener('click', (e)=>{ e.stopPropagation(); removeAccount(x.getAttribute('data-x')); });
       });
     }
+    // G3: Steam baglanti durumu seridi. Kopma sessiz kalmasin diye ust barin altinda
+    // kalici bir serit gosterilir; yeniden baglaninca kendiliginden kaybolur.
+    function baglantiSeridi(durum, mesaj){
+      let el = document.getElementById('baglantiSerit');
+      if (durum === 'bagli'){
+        if (el) el.remove();
+        return;
+      }
+      if (!el){
+        el = document.createElement('div');
+        el.id = 'baglantiSerit';
+        el.style.cssText = 'flex-shrink:0;display:flex;align-items:center;gap:10px;padding:9px 20px;'
+          + 'font-size:12px;font-weight:600;border-bottom:1px solid #B37E24;background:#1A1408;color:#B37E24';
+        // Serit GOVDE SATIRININ ustune girer. Eskiden dogrudan <main>'in kardesi olarak
+        // ekleniyordu; o satir yan panelle ayni flex satiri oldugu icin serit ust cubugun
+        // altina degil, kenar cubugunun yanina dusuyordu.
+        const ana = document.querySelector('main');
+        const satir = ana && ana.parentNode;                   // aside + main satiri
+        const hedef = (satir && satir.parentNode) ? satir : (ana || document.body);
+        hedef.parentNode.insertBefore(el, hedef);
+      }
+      const renk = durum === 'koptu' ? '#B32453' : '#B37E24';
+      el.style.borderBottomColor = renk; el.style.color = renk;
+      el.innerHTML = '<span style="width:7px;height:7px;border-radius:12px;background:'+renk+';flex-shrink:0;'
+        + 'animation:e-dotPulse 1.6s ease-in-out infinite"></span><span>'+esc(mesaj||'')+'</span>';
+    }
+    if (window.imu.engine && window.imu.engine.onDurum){
+      window.imu.engine.onDurum((d)=>{
+        if (!d || !d.aktif) return;          // yalnizca ekranda acik olan hesap
+        baglantiSeridi(d.durum, d.mesaj);
+        if (d.durum === 'koptu'){
+          if (typeof setSysStatus === 'function') setSysStatus(false);
+          if (typeof pushFeed === 'function') pushFeed('hata', 'Steam Bağlantısı', d.mesaj || 'Koptu.', 'Hata');
+          if (typeof notify === 'function') notify('error', 'Steam Bağlantısı Koptu', 'Yeniden bağlanılıyor...');
+        } else if (d.durum === 'bagli' && d.yenidenBaglandi){
+          if (typeof pushFeed === 'function') pushFeed('kart', 'Steam Bağlantısı', d.mesaj || 'Yeniden bağlandı.', 'Başarılı');
+        }
+      });
+    }
+
     // Hesap değiştirme YENİDEN YÜKLEME YAPMAZ - diğer hesapların kart toplama/saat yükseltme
     // işi arka planda sürdüğü için sayfayı baştan kurmak hem gereksiz hem de o işlerin canlı
     // göstergesini sıfırlardı. Bunun yerine sayfa önbellekleri boşaltılıp aktif sekme yeniden
     // veri çeker.
+    // MADDE 2a: Sadece degiskenleri temizlemek yetmiyordu. Aktif olmayan sekmelerin DOM'u
+    // ekranda kaliyor ve o sekmeye gecildiginde ONCEKI HESABIN oyunlari gorunuyordu; veri
+    // gec gelirse ya da baglanti kurulamazsa sonsuza kadar oyle kaliyordu.
+    // Cozum: hesap degisince tum sekmelerin icerigini bosalt, "yukleniyor" iskeleti koy.
+    function iskeletKoy(){
+      const hedefler = [
+        ['kartRows', 'Oyun listesi yükleniyor...'],
+        ['envRows', 'Envanter yükleniyor...'],
+        ['saatListBody', 'Kütüphane yükleniyor...'],
+        ['activeBoostBox', 'Kuyruk yükleniyor...'],
+        ['acBody', 'Başarımlar yükleniyor...'],
+        ['grListe', 'Yükleniyor...'],
+        ['gFeed', 'Yükleniyor...'],
+      ];
+      hedefler.forEach(([id, metin])=>{
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '<div style="padding:20px;color:#8B8F9E;font-size:12px">'+metin+'</div>';
+      });
+    }
     function resetPageCaches(){
+      iskeletKoy();
       if (typeof kartLoaded !== 'undefined'){ kartLoaded = false; dropGames = []; }
       if (typeof saatLoaded !== 'undefined'){ saatLoaded = false; ownedGames = []; selectedSaat = []; }
       if (typeof envLoaded !== 'undefined'){ envLoaded = false; invMerged = null; invItems = null; detailKey = null; }
       if (typeof priceMap !== 'undefined') priceMap.clear();
       if (typeof selected !== 'undefined') selected.clear();
       if (typeof acLoaded !== 'undefined'){ acLoaded = false; acData = null; acAppid = null; }
+      if (typeof grLoaded !== 'undefined'){ grLoaded = false; grGames = []; grAppid = null; grPlan = null; }
       if (typeof acCache !== 'undefined') acCache.clear();
+      // Sohbet baska hesabin arkadas listesini gostermesin
+      if (typeof chYuklendi !== 'undefined'){ chYuklendi = false; chArkadaslar = []; chSecili = null; chMesajlar.clear(); chOkunmamis.clear(); }
       if (typeof genelLoaded !== 'undefined') genelLoaded = false;
+      // Aktivite akisi hesaba ozeldir; eski hesabin gecmisi ekranda kalmasin
+      if (typeof activityFeed !== 'undefined') activityFeed.length = 0;
     }
     function reloadActiveTab(){
       const active = document.querySelector('.nav a.active');
@@ -490,19 +854,32 @@
     async function switchAccount(steamID){
       closeAcct();
       const r = await window.imu.accounts.switch(steamID).catch(()=>null);
-      if (!r || !r.ok){ alert('Hesap değiştirilemedi.' + (r && r.error ? '\n'+r.error : '')); return; }
+      if (!r || !r.ok){ alert(t('Hesap değiştirilemedi.') + (r && r.error ? '\n'+r.error : '')); return; }
       resetPageCaches();
-      imuProfile = null; loadProfile();
+      imuProfile = null; imuProfilTaze = false; loadProfile();
       reloadActiveTab();
       renderAcctList();
     }
     async function removeAccount(steamID){
-      if (!confirm('Bu hesabı listeden kaldır?\n\nO hesabın arka planda çalışan kart toplama/saat yükseltme işi de durur.')) return;
+      // MADDE 9: duz confirm() yerine ne silinecegini ACIKCA anlatan onay
+      const ok = await edgeConfirm({
+        tag:'Hesabı Kaldır', danger:true,
+        title:'Bu hesap listeden kaldırılacak',
+        body:t('Silinecekler:') + '\n'
+             + '  · ' + t('Kayıtlı Steam oturumu (giriş anahtarı)') + '\n'
+             + '  · ' + t('O hesaba ait saat yükseltici listesi, kuyruk sırası ve başarım geçmişi') + '\n'
+             + '  · ' + t('O hesaba ait istatistikler') + '\n\n'
+             + t('Arka planda çalışan kart toplama ve saat yükseltme işi durdurulur.') + '\n\n'
+             + t('Steam hesabının kendisine hiçbir şey olmaz; istersen tekrar giriş yapabilirsin.'),
+        warn:'Bu işlem geri alınamaz.',
+        confirmText:'Hesabı Kaldır', cancelText:'Vazgeç',
+      });
+      if (!ok) return;
       const r = await window.imu.accounts.remove(steamID).catch(()=>null);
-      if (!r || !r.ok) { alert('Hesap kaldırılamadı.'); return; }
+      if (!r || !r.ok) { alert(t('Hesap kaldırılamadı.')); return; }
       if (r.loggedOut) return; // main.js zaten giriş ekranına geçti
       resetPageCaches();
-      imuProfile = null; loadProfile();
+      imuProfile = null; imuProfilTaze = false; loadProfile();
       reloadActiveTab();
       renderAcctList();
     }
@@ -514,10 +891,14 @@
     // Gelen Steam mesajı: aktivite akışına düşer + ekranda toast çıkar. Masaüstü bildirimi
     // ana süreçte gönderiliyor (bkz. main.js connectAccount > onChatMessage).
     if (window.imu.onChatMessage) window.imu.onChatMessage((m)=>{
+      // Sohbet ekrani acik degilse ust bardaki rozet yansin.
+      if (designed.sohbet && designed.sohbet.classList.contains('hidden')){
+        chBekleyen++; chRozetBoya();
+      }
       const who = m.persona || m.from;
       if (typeof pushFeed === 'function'){
-        pushFeed('mesaj', 'Steam mesajı · ' + who,
-                 m.message.slice(0,140) + (m.replied ? '  ·  otomatik yanıtlandı' : ''), 'Mesaj');
+        pushFeed('mesaj', t('Steam mesajı') + ' · ' + who,
+                 m.message.slice(0,140) + (m.replied ? '  ·  ' + t('otomatik yanıtlandı') : ''), 'Mesaj');
       }
       if (typeof toast === 'function') toast(who).done(m.message.slice(0,120));
       if (typeof playNotifSound === 'function' && appSettings && appSettings.notifications) playNotifSound();
@@ -530,7 +911,15 @@
       }
     }).catch(()=>{});
     document.getElementById('acctLogoutBtn').onclick = () => {
-      if (confirm('Bu hesaptan çıkış yapılacak, tekrar giriş yapman gerekecek. Devam edilsin mi?')) window.imu.logout();
+      // MADDE 9: cikis KALICI veriyi silmez, bunu acikca soyle - kullanici tereddut etmesin
+      edgeConfirm({
+        tag:'Çıkış Yap',
+        title:'Bu hesaptan çıkış yapılacak',
+        body:t('Oturum kapatılır ve giriş ekranına dönersin.') + '\n\n'
+             + t('Ayarların, saat yükseltici listen, başarım geçmişin ve istatistiklerin SİLİNMEZ; tekrar giriş yaptığında yerinde olur.'),
+        warn:'Çalışan kart toplama ve saat yükseltme işi durur.',
+        confirmText:'Çıkış Yap', cancelText:'Vazgeç',
+      }).then(ok=>{ if (ok) window.imu.logout(); });
     };
     tbProfile.addEventListener('click', (e) => {
       e.stopPropagation();

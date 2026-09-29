@@ -11,6 +11,9 @@
       appSettings = s || {};
       // Dili ayarlardan baslat: metinler cizilmeden once devreye girmeli.
       if (typeof initI18n === 'function') initI18n(appSettings.language);
+      // Ayarlar içinde son bilinen profil de geliyor (main.js > hesap dosyası). Steam
+      // oturumu daha kurulmadan isim, avatar ve seviye ekrana yazılabilsin diye ilk iş bu.
+      if (typeof onbelleklenmisProfil === 'function') onbelleklenmisProfil();
       paintAll();
       applySettingsEverywhere(true);
       // Açılış sayfası sadece uygulama ilk açıldığında uygulanır (genel.js yüklendikten sonra)
@@ -19,7 +22,28 @@
 
     // Bir ayar değişince ilgili sayfaları anında yeniden çizer - "kaydettim ama hiçbir şey
     // olmadı" durumunu ortadan kaldırır.
+    // Bir ayarin baska bir ayara bagli oldugu yerler. Bagli olan kapaliyken satir sonuk
+    // ve tiklanamaz olur; acik gorunup hicbir sey yapmayan anahtar birakmiyoruz. Bu tuzak
+    // 1.1.10'da basarim acilis araliginda yasandi: guvenli mod kapaliyken aralik sessizce
+    // yok sayiliyordu ve kullanici 55 dakika secip hepsinin bir anda acildigini gordu.
+    const AYAR_KAPILARI = [
+      // "Acilislari zamana yay" sapmanin GENISLIGINI ayarlar; sapma da guvenli modda olur.
+      { satir: 'ayAchSpreadRow', kosul: () => appSettings.achSafeMode !== false,
+        not: 'Güvenli mod kapalıyken açılış aralığı sapmaz.' },
+    ];
+    function ayarKapilariniBoya(){
+      AYAR_KAPILARI.forEach(({ satir, kosul, not }) => {
+        const el = document.getElementById(satir);
+        if (!el) return;
+        const acik = !!kosul();
+        el.style.opacity = acik ? '1' : '.4';
+        el.style.pointerEvents = acik ? '' : 'none';
+        el.title = acik ? '' : not;
+      });
+    }
+
     function applySettingsEverywhere(first){
+      ayarKapilariniBoya();
       if (typeof applyDensity === 'function') applyDensity();
       // Yan menü daraltılmış başlasın
       if (first && typeof sideNav !== 'undefined' && sideNav && appSettings.sidebarCollapsed) {
@@ -65,7 +89,7 @@
       if (kind==='ach'   && !appSettings.notifyAch)   return;
       if (inQuietHours()) return;
       // Ana süreç üzerinden gönderilir; Windows toast'ları renderer'dan sessizce düşüyordu.
-      window.imu.notify(title, body||'').catch(()=>{});
+      window.imu.notify(t(title), t(body||'')).catch(()=>{});
       if (typeof playNotifSound === 'function') playNotifSound();
     }
 
@@ -73,6 +97,7 @@
     let currentSetSec = 'general';
     function showSetSection(sec){
       currentSetSec = sec;
+      if (sec === 'advanced' && typeof bellekOku === 'function') bellekOku();
       document.querySelectorAll('#tab-ayarlar .setpanel').forEach(p=>{
         p.style.display = (p.getAttribute('data-sec')===sec) ? '' : 'none';
       });
@@ -170,31 +195,92 @@
       paintFxInfo();
       set('setAcctStatus', appSettings.steamID ? 'Bağlı' : 'Bağlı değil');
       set('setLastSync', appSettings.steamID ? 'Şimdi' : '-');
+      // Sürüm package.json'dan gelir (preload > imu.surum). Elle yazılan sürüm satırı yok.
+      const surum = (window.imu && window.imu.surum) || '';
+      set('setVersion', surum ? ('SteamEdge v' + surum) : 'SteamEdge');
+      set('setVersionSide', surum ? ('v' + surum) : '-');
       showSetSection(currentSetSec);
     }
 
+    // ================= BELLEK GÖSTERGESİ =================
+    // Ölçüm ana süreçten geliyor (app.getAppMetrics), tahmin değil. Yalnızca Ayarlar >
+    // Gelişmiş görünürken ve pencere açıkken güncellenir - göstergenin kendisi bellek
+    // ölçmek uğruna arka planda dönmesin.
+    let memTimer = null;
+    function bellekYaz(d){
+      const t = document.getElementById('memTotal');
+      const b = document.getElementById('memBreak');
+      if (!t) return;
+      if (!d){ t.textContent = '-'; return; }
+      const mb = (kb)=> (kb/1024);
+      t.textContent = mb(d.toplamKb).toFixed(0) + ' MB';
+      // Süreç türleri: Browser = ana süreç, Tab = arayüz, GPU = ekran kartı, Utility = ağ.
+      // Kırılım metni JS'te birleştiği için DOM çevirisine takılmaz; adları burada t() ile
+      // geçiriyoruz. Anahtarlar bilerek uzun: tek kelimelik anahtar sözlükte başka metinleri
+      // de yakalardı.
+      const ad = { Browser:'ana süreç', Tab:'arayüz süreci', GPU:'ekran kartı süreci', Utility:'ağ süreci' };
+      const cev = (s)=> (typeof t === 'function' ? t(s) : s);
+      const parcalar = (d.surecler||[])
+        .map(p => cev(ad[p.tur] || p.tur) + ' ' + mb(p.kb).toFixed(0))
+        .join(' · ');
+      b.textContent = parcalar ? (parcalar + '  (MB)') : cev('Tüm SteamEdge süreçlerinin toplamı');
+    }
+    async function bellekOku(){
+      if (document.hidden) return;
+      if (typeof currentSetSec === 'string' && currentSetSec !== 'advanced') return;
+      if (designed.ayarlar.classList.contains('hidden')) return;
+      const d = await window.imu.appBellek().catch(()=>null);
+      bellekYaz(d);
+    }
+    // Gorsel ve ag onbellegini bosalt. Uzun oturumlarda binlerce oyun kapagi birikiyor;
+    // ayar ve oturum kaybi olmadan bellegi geri kazanmanin en dogrudan yolu bu.
+    (function bellekTemizleBagla(){
+      const b = document.getElementById('memTemizle');
+      if (!b) return;
+      b.onclick = async ()=>{
+        b.disabled = true; b.style.opacity = '0.5';
+        const t = (typeof toast === 'function') ? toast('Önbellek boşaltılıyor...') : null;
+        const r = await window.imu.appBellekTemizle().catch(e=>({ ok:false, error:(e&&e.message) }));
+        b.disabled = false; b.style.opacity = '1';
+        if (!r || !r.ok){ if (t) t.fail((r && r.error) || 'Boşaltılamadı.'); return; }
+        const mb = Math.round((r.kazancKb || 0) / 1024);
+        if (t) t.done(mb > 0 ? tf('# MB geri alındı.', mb) : 'Önbellek boşaltıldı.');
+        bellekOku();
+      };
+    })();
+
+    function bellekIzlemeKur(){
+      if (memTimer) return;
+      memTimer = setInterval(bellekOku, 4000);
+      bellekOku();
+    }
+    bellekIzlemeKur();
+
     async function loadAyarlar(){
       appSettings = await S.get() || {};
-      // Profil (avatar dahil) gelmeden boyarsak avatar yerine baş harf kalır - önce profili çek.
-      await loadProfile();
+      // Sayfa ÖNCE çizilir. Eskiden burada profil beklenirdi ("avatar yerine baş harf
+      // kalmasın" diye) ve profil Steam oturumuna bağlı olduğu için hesap kartı saniyelerce
+      // tire gösteriyordu. Artık son bilinen profil ayarlarla birlikte geliyor; taze veri
+      // gelince applyProfile alanları kendisi günceller.
       paintAll();
       renderLifeStats();    // kalıcı istatistikler
+      loadProfile();        // beklenmez
     }
 
     // Test bildirimi - seçili ses/sessiz-saat ayarlarıyla birlikte gerçek bildirimi dener.
     const testBtn = document.getElementById('setTestNotif');
     if (testBtn) testBtn.onclick = async ()=>{
       if (!appSettings.notifications){
-        alert('Önce "Masaüstü bildirimlerini göster" anahtarını aç.');
+        alert(t('Önce "Masaüstü bildirimlerini göster" anahtarını aç.'));
         return;
       }
       if (inQuietHours()){
-        alert('Sessiz saatler şu an aktif ('+(appSettings.quietFrom||'23:00')+'-'+(appSettings.quietTo||'08:00')+').\nBu aralıkta bildirim gösterilmez.');
+        alert(t('Sessiz saatler şu an aktif') + ' ('+(appSettings.quietFrom||'23:00')+'-'+(appSettings.quietTo||'08:00')+').\n' + t('Bu aralıkta bildirim gösterilmez.'));
         return;
       }
       testBtn.disabled = true;
       const r = await window.imu.notify('SteamEdge',
-        'Bildirimler çalışıyor ✓  ·  ses: ' + (appSettings.notifSound || 'chime')).catch(e=>({ ok:false, error:(e&&e.message) }));
+        t('Bildirimler çalışıyor ✓') + '  ·  ' + t('ses:') + ' ' + (appSettings.notifSound || 'chime')).catch(e=>({ ok:false, error:(e&&e.message) }));
       testBtn.disabled = false;
       if (typeof playNotifSound === 'function') playNotifSound();
       if (r && r.ok){
@@ -223,7 +309,7 @@
     function markDirty(key){
       if (key) dirtyKeys.add(key);
       const d = document.getElementById('setDirty');
-      if (d) d.textContent = dirtyKeys.size ? (dirtyKeys.size + ' değişiklik') : 'yok';
+      if (d) d.textContent = dirtyKeys.size ? tf('# değişiklik', dirtyKeys.size) : 'yok';
     }
     function snapshotSettings(){
       settingsSnapshot = JSON.parse(JSON.stringify(appSettings || {}));
@@ -237,8 +323,8 @@
       const list = [...dirtyKeys].slice(0, 6).join(', ') + (dirtyKeys.size > 6 ? ' …' : '');
       const r = await edgeConfirm({
         tag: 'Kaydedilmemiş Değişiklik',
-        title: dirtyKeys.size + ' ayarı değiştirdin',
-        body: 'Değişiklikler zaten uygulandı ve diske yazıldı.\nDeğişen: ' + list,
+        title: tf('# ayarı değiştirdin', dirtyKeys.size),
+        body: t('Değişiklikler zaten uygulandı ve diske yazıldı.') + '\n' + t('Değişen:') + ' ' + list,
         warn: '“Geri Al” dersen bu sayfaya girdiğin andaki değerlere dönülür.',
         confirmText: 'Kaydet ve Çık',
         altText: 'Geri Al',
@@ -253,6 +339,14 @@
       snapshotSettings();
       return true;
     }
+    // Bu anahtarlar Chromium'a app.whenReady()'den ONCE veriliyor; degistirmek ancak
+    // uygulama yeniden acilinca etki eder. Sessizce kaydedip "oldu" gibi durmak yanlis
+    // olurdu, o yuzden soyleniyor.
+    const YENIDEN_BASLAT = ['hwAccel', 'gpuArkaUc', 'gpuKompozisyon'];
+    function baslatmaUyar(key){
+      if (!YENIDEN_BASLAT.includes(key)) return;
+      if (typeof toast === 'function') toast('Ayar kaydedildi').done('Etkili olması için SteamEdge yeniden başlatılmalı.');
+    }
     document.querySelectorAll('#tab-ayarlar [data-set]').forEach(el=>{
       const key = el.getAttribute('data-set');
       if (el.tagName === 'DIV'){
@@ -261,6 +355,7 @@
           paintToggle(el, val);
           appSettings = await S.set({ [key]: val });
           markDirty(key);
+          baslatmaUyar(key);
           if (key === 'notifications') paintAll();
           applySettingsEverywhere();
         });
@@ -274,6 +369,7 @@
           }
           appSettings = await S.set({ [key]: val });
           markDirty(key);
+          baslatmaUyar(key);
           // Dil degisti: cevrilmis metni geri cevirmek mumkun degil, sayfa yeniden yuklenir.
           if (key === 'language'){ if (typeof setUiLang === 'function') setUiLang(val); return; }
           // Ses seçilince hemen çal - kullanıcı deneyerek seçebilsin
@@ -309,7 +405,7 @@
     document.getElementById('setSteamID').onclick = ()=>{
       if (!appSettings.steamID) return;
       navigator.clipboard.writeText(appSettings.steamID);
-      if (typeof toast === 'function') toast('Kopyalandı').done('SteamID panoya kopyalandı.');
+      if (typeof toast === 'function') toast('Kopyalandı').done(t('SteamID panoya kopyalandı.'));
     };
 
     // ---- Yedekleme ----
@@ -317,7 +413,7 @@
       const r = await S.export().catch(e=>({ ok:false, error:(e&&e.message) }));
       if (r && r.canceled) return;
       if (r && r.ok){
-        setBackupInfo('Son dışa aktarma: ' + r.file);
+        setBackupInfo(t('Son dışa aktarma:') + ' ' + r.file);
         if (typeof toast === 'function') toast('Dışa aktarma').done('Yedek kaydedildi.');
       } else {
         edgeConfirm({ tag:'Hata', danger:true, title:'Dışa aktarılamadı',
@@ -337,8 +433,8 @@
         await renderLifeStats();   // istatistikler de yedekten gelmiş olabilir
         paintAll();
         applySettingsEverywhere();
-        setBackupInfo('Son içe aktarma: ' + r.file);
-        if (typeof toast === 'function') toast('İçe aktarma').done(r.applied + ' ayar geri yüklendi.');
+        setBackupInfo(t('Son içe aktarma:') + ' ' + r.file);
+        if (typeof toast === 'function') toast('İçe aktarma').done(tf('# ayar geri yüklendi.', r.applied));
       } else {
         edgeConfirm({ tag:'Hata', danger:true, title:'İçe aktarılamadı',
                       body:(r && r.error) || 'Bilinmeyen hata.', confirmText:'Tamam', cancelText:'Kapat' });
@@ -348,8 +444,7 @@
 
     document.getElementById('setWipeAll').onclick = async ()=>{
       const ok1 = await edgeConfirm({ tag:'Tehlikeli Bölge', danger:true, title:'TÜM YEREL VERİ SİLİNECEK',
-        body:'Oturum, kayıtlı hesaplar, ayarlar, kalıcı istatistikler ve fiyat önbelleği kalıcı olarak silinir '
-             + 've giriş ekranına dönülür.',
+        body:'Oturum, kayıtlı hesaplar, ayarlar, kalıcı istatistikler ve fiyat önbelleği kalıcı olarak silinir ve giriş ekranına dönülür.',
         warn:'Steam hesabın etkilenmez - sadece bu bilgisayardaki uygulama verisi temizlenir.',
         confirmText:'Devam' });
       if (!ok1) return;

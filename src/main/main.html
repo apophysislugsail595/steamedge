@@ -36,18 +36,31 @@
     <!-- TOPBAR (marka + wordmark + sürüm solda, arama/bildirim/ayarlar/hesap sağda) -->
     <header class="e-header">
       <div style="display:flex;align-items:center;gap:12px">
-        <img src="../assets/logo-mark.png" alt="" style="height:26px;width:auto;display:block">
+        <img src="../assets/logo-mark.svg" alt="" style="height:26px;width:auto;display:block">
         <span style="font-size:15px;font-weight:700;letter-spacing:-.01em;color:var(--e-title)">Steam<span style="color:var(--e-brand)">Edge</span></span>
-        <span style="font-family:'Geist Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.08em;color:var(--e-off);border:1px solid var(--e-bdPassive);border-radius:12px;padding:3px 8px">v1.0.1</span>
+        <!-- Surum package.json'dan gelir (common.js > paintVersion) - burada elle yazilmaz. -->
+        <span id="tbVersion" style="font-family:'Geist Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.08em;color:var(--e-off);border:1px solid var(--e-bdPassive);border-radius:12px;padding:3px 8px">v-</span>
       </div>
       <div style="display:flex;align-items:center;gap:10px">
         <div class="e-search">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8B8F9E" stroke-width="1.8"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4.3-4.3"></path></svg>
           <input id="tbSearch" type="text" placeholder="Oyun, eşya veya AppID ara...">
         </div>
+        <!-- Sohbet: Steam'in arkadas mesajlari. Rozet okunmamis mesaj sayisini gosterir. -->
+        <button id="tbChat" class="e-icon-btn" title="Sohbet">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B8F9E" stroke-width="1.8"><path d="M21 12a8 8 0 0 1-8 8H7l-4 3v-5.5A8 8 0 0 1 11 4h2a8 8 0 0 1 8 8z"></path></svg>
+          <span class="e-badge" id="tbChatBadge" style="display:none"></span>
+        </button>
         <button id="tbNotif" class="e-icon-btn" title="Bildirimler">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B8F9E" stroke-width="1.8"><path d="M6 10a6 6 0 0 1 12 0v5l2 2H4l2-2z"></path><path d="M10 20h4"></path></svg>
           <span class="e-badge" id="tbNotifBadge" style="display:none"></span>
+        </button>
+        <!-- Elle güncelleme denetimi. Uygulama açılışta zaten bir kez bakar ve YALNIZCA yeni
+             sürüm varsa pencere gösterir; buradan istendiği an tekrar bakılabilir. Sonuç her
+             durumda söylenir, güncel olmak da bir cevaptır. -->
+        <button id="tbUpdate" class="e-icon-btn" title="Güncellemeleri denetle">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B8F9E" stroke-width="1.8"><path d="M12 4v9"></path><path d="M8.5 9.5 12 13l3.5-3.5"></path><path d="M5 17a8 8 0 0 0 14 0"></path></svg>
+          <span class="e-badge" id="tbUpdateBadge" style="display:none"></span>
         </button>
         <button id="tbSettings" class="e-icon-btn" title="Ayarlar">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3.2"></circle><circle cx="12" cy="12" r="8"></circle><path d="M12 4v2M12 18v2M4 12h2M18 12h2"></path></svg>
@@ -111,6 +124,10 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 3 5 14h6l-1 7 8-11h-6z"></path></svg>
               <span class="e-lbl">Saat Yükseltici</span>
             </a>
+            <a data-tab="gercekci" class="e-nav-item">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+              <span class="e-lbl">Gerçekçi Mod</span>
+            </a>
             <a data-tab="basarim" class="e-nav-item">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 4h8v5a4 4 0 0 1-8 0z"></path><path d="M12 13v4M9 20h6"></path><path d="M8 5H5v2a3 3 0 0 0 3 3M16 5h3v2a3 3 0 0 1-3 3"></path></svg>
               <span class="e-lbl">Başarımlar</span>
@@ -144,7 +161,9 @@
         <section id="tab-kart" class="hidden"></section>
         <section id="tab-env" class="hidden"></section>
         <section id="tab-saat" class="hidden"></section>
+        <section id="tab-gercekci" class="hidden"></section>
         <section id="tab-basarim" class="hidden"></section>
+        <section id="tab-sohbet" class="hidden"></section>
         <section id="tab-ayarlar" class="hidden"></section>
         <section id="tab-empty" class="hidden">
           <div class="empty">
@@ -163,7 +182,9 @@
     document.getElementById('tab-kart').innerHTML = window.imu.pages.load('kart');
     document.getElementById('tab-env').innerHTML = window.imu.pages.load('env');
     document.getElementById('tab-saat').innerHTML = window.imu.pages.load('saat');
+    document.getElementById('tab-gercekci').innerHTML = window.imu.pages.load('gercekci');
     document.getElementById('tab-basarim').innerHTML = window.imu.pages.load('basarim');
+    document.getElementById('tab-sohbet').innerHTML = window.imu.pages.load('sohbet');
     document.getElementById('tab-ayarlar').innerHTML = window.imu.pages.load('ayarlar');
   </script>
   <!-- Cok dillilik: sozluk + DOM uzerinde ceviri. Diger sayfa JS'lerinden ONCE. -->
@@ -173,6 +194,8 @@
   <script src="js/saat.js"></script>
   <script src="js/env.js"></script>
   <script src="js/basarim.js"></script>
+  <script src="js/gercekci.js"></script>
+  <script src="js/sohbet.js"></script>
   <script src="js/ayarlar.js"></script>
   <script src="js/genel.js"></script>
 </body>

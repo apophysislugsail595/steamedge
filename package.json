@@ -1,7 +1,7 @@
 {
   "name": "steamedge",
   "productName": "SteamEdge",
-  "version": "1.0.1",
+  "version": "1.2.0",
   "description": "Headless Steam trading card farmer, hour booster, achievement manager and market tool. No Steam client required.",
   "keywords": [
     "steam",
@@ -19,35 +19,34 @@
     "headless",
     "steam-badges"
   ],
-  "homepage": "https://github.com/Miabeyefendi/steamedge",
+  "homepage": "https://github.com/Miabeyefendi/SteamEdge",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Miabeyefendi/steamedge.git"
+    "url": "https://github.com/Miabeyefendi/SteamEdge.git"
   },
   "bugs": {
-    "url": "https://github.com/Miabeyefendi/steamedge/issues"
+    "url": "https://github.com/Miabeyefendi/SteamEdge/issues"
   },
   "main": "main.js",
-  "scripts": {
-    "start": "electron .",
-    "build": "node build/build.js",
-    "build:win": "node build/build.js --platform=win32",
-    "postinstall": "node -e \"console.log('SteamEdge: npm start ile calistirin, npm run build ile paketleyin.')\""
-  },
   "author": "Miabeyefendi (Mustafa Ihsan Albayrak) <https://github.com/Miabeyefendi>",
   "license": "AGPL-3.0-or-later",
   "engines": {
     "node": ">=20"
   },
-  "devDependencies": {
-    "@electron/packager": "^20.2.0",
-    "electron": "^39.8.10"
-  },
   "dependencies": {
     "qrcode": "^1.5.4",
     "steam-session": "^1.9.4",
-    "steam-totp": "^2.1.2",
     "steam-user": "^5.3.0"
+  },
+  "scripts": {
+    "start": "electron .",
+    "build": "node build/build.js",
+    "build:win": "node build/build.js --platform=win32",
+    "postinstall": "node -e \"console.log('SteamEdge: run with npm start or build with npm run build.')\""
+  },
+  "devDependencies": {
+    "@electron/packager": "^20.2.0",
+    "electron": "^39.8.10"
   },
   "overrides": {
     "ip-address": "^10.4.0",
